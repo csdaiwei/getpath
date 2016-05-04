@@ -18,6 +18,6 @@ def index2coor(index, w):
     return i, j
 
 
-def get_color(matrix, i, j, area):
+def matrix_mean(matrix, i, j, area):
     return np.mean(matrix[(i-area):(i+area+1), (j-area):(j+area+1)])
 

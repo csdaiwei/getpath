@@ -44,8 +44,8 @@ def matrix2edge(matrix, start_point, end_point):
                     p1_index = coor2index(p1[0], p1[1], w)
                     p2_index = coor2index(p2[0], p2[1], w)
 
-                    p1_color = get_color(matrix, p1[0], p1[1], area=2)
-                    p2_color = get_color(matrix, p2[0], p2[1], area=2)
+                    p1_color = matrix_mean(matrix, p1[0], p1[1], area=2)
+                    p2_color = matrix_mean(matrix, p2[0], p2[1], area=2)
 
                     dist = sqrt(offset[0]**2 + offset[1]**2)
                     cost = (color2cost(p1_color) + color2cost(p2_color)) * dist
@@ -75,17 +75,20 @@ if __name__ == '__main__':
     img = cv2.imread(input_file)
     matrix = img[:, :, 0]           # modis images are grey
     w, h = matrix.shape
+    print "load image %d * %d"%(w, h)
 
     # convert image to weighted graph
     start_point = (2100, 2700)
     end_point = (3200, 3245)
 
     edges = matrix2edge(matrix, start_point, end_point)
+    print "convert image to graph"
 
     # call dijkstra to get shortest path
     start_index = coor2index(start_point[0], start_point[1], w)
     end_index = coor2index(end_point[0], end_point[1], w)
     cost, path = dijkstra(edges, start_index, end_index)
+    print "get shortest path"
 
     # paint the path and save as png
     img = paint_path(img, start_point, end_point, path)
