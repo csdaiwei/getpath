@@ -6,13 +6,21 @@ from utils import *
 from math import sqrt
 from dijkstra_algorithm import dijkstra
 
+## params
 
 input_file = "input.png"
 output_file = "output.png"
 
+EXTEND_SEARCH_SIZE = 100    # extend search area within the block of (start_point, end_point)
+MAX_PASSABLE_COLOR = 30     # points with larger grey value are not passable
+PATH_EDGE_SIZE = 2          # use mean value of an area to represent color of a point
+
+
+## functions 
 
 def color2cost(color):
-    return color + 1
+    #assert 0 <= color < MAX_PASSABLE_COLOR
+    return color/5 + 1
 
 
 def matrix2edge(matrix, start_point, end_point):
@@ -22,14 +30,14 @@ def matrix2edge(matrix, start_point, end_point):
     reachable_set = set([])
     w, h = matrix.shape
 
-    x_search_area[0] = min(start_point[0], end_point[0]) - 100
-    x_search_area[1] = max(start_point[0], end_point[0]) + 100
-    y_search_area[0] = min(start_point[1], end_point[1]) - 100
-    y_search_area[1] = max(start_point[1], end_point[1]) + 100
+    x_search_area[0] = min(start_point[0], end_point[0]) - EXTEND_SEARCH_SIZE
+    x_search_area[1] = max(start_point[0], end_point[0]) + EXTEND_SEARCH_SIZE
+    y_search_area[0] = min(start_point[1], end_point[1]) - EXTEND_SEARCH_SIZE
+    y_search_area[1] = max(start_point[1], end_point[1]) + EXTEND_SEARCH_SIZE
 
     for x in range(x_search_area[0], x_search_area[1]):
         for y in range(y_search_area[0], y_search_area[1]):
-            if matrix[x][y] < 30:
+            if matrix[x][y] < MAX_PASSABLE_COLOR:
                 reachable_set.add((x, y))
 
     offset_list = [[1, 0], [-1, 0], [0, 1], [0, -1],
@@ -44,8 +52,8 @@ def matrix2edge(matrix, start_point, end_point):
                     p1_index = coor2index(p1[0], p1[1], w)
                     p2_index = coor2index(p2[0], p2[1], w)
 
-                    p1_color = matrix_mean(matrix, p1[0], p1[1], area=2)
-                    p2_color = matrix_mean(matrix, p2[0], p2[1], area=2)
+                    p1_color = matrix_mean(matrix, p1[0], p1[1], area=PATH_EDGE_SIZE)
+                    p2_color = matrix_mean(matrix, p2[0], p2[1], area=PATH_EDGE_SIZE)
 
                     dist = sqrt(offset[0]**2 + offset[1]**2)
                     cost = (color2cost(p1_color) + color2cost(p2_color)) * dist
@@ -63,8 +71,8 @@ def paint_path(img, start_point, end_point, path):
         path_points.append(index2coor(node, w))
 
     img = paint_img(img, path_points, [0, 255, 0], area=0)      # path as green
-    img = paint_img(img, [start_point], [255, 0, 0], area=2)    # start point as red
-    img = paint_img(img, [end_point], [0, 0, 255], area=2)      # end point as blue
+    img = paint_img(img, [start_point], [0, 0, 255], area=2)    # start point as red
+    img = paint_img(img, [end_point], [255, 0, 0], area=2)      # end point as blue
 
     return img
 
