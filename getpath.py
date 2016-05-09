@@ -8,28 +8,32 @@ from dijkstra_algorithm import dijkstra
 
 class ModisMap:
 	
-	input_file = "input.png"
-	output_file = "output.png"
 
-	EXTEND_SEARCH_SIZE = 100    # extend search area within the block of (start_point, end_point)
+	EXTEND_SEARCH_SIZE = 1    # extend search area within the block of (start_point, end_point)
 	MAX_PASSABLE_COLOR = 30     # points with larger grey value are not passable
-	PATH_EDGE_SIZE = 2          # use mean value of an area to represent color of a point
+	PATH_EDGE_SIZE = 0          # use mean value of an area to represent color of a point
 
 
-	def __init__(self):
-		self.img = cv2.imread(ModisMap.input_file)
+	def __init__(self, inputfile):
+		self.img = cv2.imread(inputfile)
 		self.matrix = self.img[:, :, 0]           # modis images are grey
 		self.w, self.h = self.matrix.shape
 		
 	
-	# position is relative like (0.1, 0.1)
+	# position is relative like (0.1, 0.1) for both input and output
 	def getpath(self, start_position, end_position):
 
-		start_point = (int(start_position[0] * x), int(start_position[1] * y))
-		end_point = (int(end_position[0] * x), int(end_position[1] * y))
+		start_point = (int(start_position[1] * self.w), int(start_position[0] * self.h))
+		end_point = (int(end_position[1] * self.w), int(end_position[0] * self.h))
 
-		return self.getpath_absolute(start_point, end_point)
+		path = self.getpath_absolute(start_point, end_point)
+		img = self.paint_path(start_point, end_point, path)
 
+		relative_path = [(p[1]/float(self.h), p[0]/float(self.w)) for p in path]
+
+		return relative_path, img
+
+	# point is absolute for both input and output
 	def getpath_absolute(self, start_point, end_point):
 
 		# convert image to weighted graph
@@ -124,7 +128,7 @@ class ModisMap:
 
 if __name__ == '__main__':
 	
-	m = ModisMap()
+	m = ModisMap('input.png')
 
 	start_point = (2100, 2700)
 	end_point = (3200, 3245)
