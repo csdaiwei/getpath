@@ -9,7 +9,7 @@ from dijkstra_algorithm import dijkstra
 class ModisMap:
 	
 
-	EXTEND_SEARCH_SIZE = 1    # extend search area within the block of (start_point, end_point)
+	EXTEND_SEARCH_SIZE = 100    # extend search area within the block of (start_point, end_point)
 	MAX_PASSABLE_COLOR = 30     # points with larger grey value are not passable
 	PATH_EDGE_SIZE = 0          # use mean value of an area to represent color of a point
 
@@ -81,10 +81,12 @@ class ModisMap:
 
 		offset_list = [[1, 0], [-1, 0], [0, 1], [0, -1],
 				  [1, 1], [1, -1], [-1, 1], [-1, -1]]
+		dist_list = [1, 1, 1, 1, 1.414, 1.414, 1.414, 1.414]
 
 		for x in range(x_search_area[0], x_search_area[1]):
 			for y in range(y_search_area[0], y_search_area[1]):
-				for offset in offset_list:
+				for index in range(0,8):
+					offset = offset_list[index]
 					p1 = (x, y)
 					p2 = (x+offset[0], y+offset[1])
 					if p1 in reachable_set and p2 in reachable_set:
@@ -93,8 +95,8 @@ class ModisMap:
 
 						p1_color = self.__matrix_mean(self.matrix, p1[0], p1[1], area=ModisMap.PATH_EDGE_SIZE)
 						p2_color = self.__matrix_mean(self.matrix, p2[0], p2[1], area=ModisMap.PATH_EDGE_SIZE)
-
-						dist = sqrt(offset[0]**2 + offset[1]**2)
+						
+						dist = dist_list[index]
 						cost = (self.__color2cost(p1_color) + self.__color2cost(p2_color)) * dist
 
 						edges.append((p1_index, p2_index, cost))
