@@ -17,7 +17,7 @@ class ModisMap:
 	def __init__(self, inputfile):
 		self.img = cv2.imread(inputfile)
 		self.matrix = self.img[:, :, 0]           # modis images are grey
-		self.w, self.h = self.matrix.shape
+		self.w, self.h = self.matrix.shape 
 		self.start_point = (0, 0)
 		self.end_point = (0, 0)
 		self.is_set = False
