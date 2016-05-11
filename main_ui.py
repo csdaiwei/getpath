@@ -53,7 +53,8 @@ class MainWindow:
 
 	def __getpath(self, start_position, end_position):
 		m = ModisMap(self.inputfile)
-		path, img =  m.getpath(start_position, end_position)
+		m.set_startend_position(start_position, end_position)
+		path, img =  m.getpath()
 		cv2.imwrite('out.png', img)
 		return path
 

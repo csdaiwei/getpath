@@ -18,25 +18,40 @@ class ModisMap:
 		self.img = cv2.imread(inputfile)
 		self.matrix = self.img[:, :, 0]           # modis images are grey
 		self.w, self.h = self.matrix.shape
-		
+		self.start_point = (0, 0)
+		self.end_point = (0, 0)
+		self.is_set = False
+
+	def set_startend_point(self, start_point, end_point):
+		#todo: safety check
+		self.start_point = start_point
+		self.end_point = end_point
+		self.is_set = True
+
+	def set_startend_position(self, start_position, end_position):
+		#todo: safety check
+		self.start_point = (int(start_position[1] * self.w), int(start_position[0] * self.h))
+		self.end_point = (int(end_position[1] * self.w), int(end_position[0] * self.h))
+		self.is_set = True
 	
-	# position is relative like (0.1, 0.1) for both input and output
-	def getpath(self, start_position, end_position):
+	# get relative path
+	def getpath(self):
+		assert self.is_set
 
-		start_point = (int(start_position[1] * self.w), int(start_position[0] * self.h))
-		end_point = (int(end_position[1] * self.w), int(end_position[0] * self.h))
-
-		path = self.getpath_absolute(start_point, end_point)
-		img = self.paint_path(start_point, end_point, path)
+		path = self.getpath_absolute()
+		img = self.paint_path(path)
 
 		relative_path = [(p[1]/float(self.h), p[0]/float(self.w)) for p in path]
 
 		return relative_path, img
 
 	# point is absolute for both input and output
-	def getpath_absolute(self, start_point, end_point):
+	def getpath_absolute(self):
+		assert self.is_set
 
 		# convert image to weighted graph
+		start_point = self.start_point
+		end_point = self.end_point
 		edges = self.__matrix2edge(start_point, end_point)
 
 		# call dijkstra to get shortest path
@@ -51,13 +66,13 @@ class ModisMap:
 
 		return path_points
 
-	def paint_path(self, start_point, end_point, path_points):
+	def paint_path(self, path_points):
 		w, h = self.matrix.shape
 	
 		img = self.img
 		img = self.__img_fill(img, path_points, [0, 255, 0], area=0)      # path as green
-		img = self.__img_fill(img, [start_point], [0, 0, 255], area=2)    # start point as red
-		img = self.__img_fill(img, [end_point], [255, 0, 0], area=2)      # end point as blue
+		img = self.__img_fill(img, [self.start_point], [0, 0, 255], area=2)    # start point as red
+		img = self.__img_fill(img, [self.end_point], [255, 0, 0], area=2)      # end point as blue
 
 		return img
 
