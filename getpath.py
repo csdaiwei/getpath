@@ -49,7 +49,7 @@ class ModisMap:
 	def getpath_absolute(self):
 		assert self.is_set
 
-		# convert image to weighted graph
+		# convert image to weighted graph 
 		start_point = self.start_point
 		end_point = self.end_point
 		edges = self.__matrix2edge(start_point, end_point)
