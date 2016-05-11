@@ -9,7 +9,7 @@ from dijkstra_algorithm import dijkstra
 class ModisMap:
 	
 
-	EXTEND_SEARCH_SIZE = 100    # extend search area within the block of (start_point, end_point)
+	EXTEND_SEARCH_SIZE = 10    # extend search area within the block of (start_point, end_point)
 	MAX_PASSABLE_COLOR = 30     # points with larger grey value are not passable
 	PATH_EDGE_SIZE = 0          # use mean value of an area to represent color of a point
 
@@ -23,13 +23,20 @@ class ModisMap:
 		self.is_set = False
 
 	def set_startend_point(self, start_point, end_point):
-		#todo: safety check
+		#safety check
+		for p in start_point[0], end_point[0]:
+			assert 0 < p < self.h
+		for p in start_point[1], end_point[1]:
+			assert 0 < p < self.w
+
 		self.start_point = start_point
 		self.end_point = end_point
 		self.is_set = True
 
 	def set_startend_position(self, start_position, end_position):
 		#todo: safety check
+		for p in start_position+end_position:
+			assert 0 < p < 1
 		self.start_point = (int(start_position[1] * self.w), int(start_position[0] * self.h))
 		self.end_point = (int(end_position[1] * self.w), int(end_position[0] * self.h))
 		self.is_set = True
