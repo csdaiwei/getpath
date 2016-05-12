@@ -140,6 +140,8 @@ class ModisMap:
 
 
 	def __matrix_mean(self, matrix, i, j, area):
+		if area == 0:
+			return matrix[i, j]
 		return np.mean(matrix[(i-area):(i+area+1), (j-area):(j+area+1)])
 
 
@@ -151,17 +153,18 @@ class ModisMap:
 
 
 if __name__ == '__main__':
-	
-	m = ModisMap('input.png')
 
 	start_point = (2100, 2700)
 	end_point = (3200, 3245)
 	
-	path =  m.getpath_absolute(start_point, end_point)
+	m = ModisMap('input.png')
+	m.set_startend_point(start_point, end_point)
+	
+	path =  m.getpath_absolute()
 
 	print 'convert to edges...'
 
-	img = m.paint_path(start_point, end_point, path)
+	img = m.paint_path(path)
 
 	print 'get shortest path...'
 
