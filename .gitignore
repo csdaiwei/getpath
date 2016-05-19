@@ -2,3 +2,4 @@
 *.ini
 *.png
 /.idea
+.DS_Store
