@@ -14,11 +14,11 @@ class MainWindow:
 	def __init__(self, master):
 		
 		self.inputfile = 'input.png'
-		self.size = 600
+		self.size = 800
 
-		frame_left_top = tk.Frame(master, width=600, height=600)
-		frame_left_bottom = tk.Frame(master, width=600, height=50)
-		frame_right = tk.Frame(master, width=200, height=700)
+		frame_left_top = tk.Frame(master, width=800, height=800)
+		frame_left_bottom = tk.Frame(master, width=800, height=50)
+		frame_right = tk.Frame(master, width=200, height=850)
 		frame_left_top.grid(row=0, column=0, padx=2, pady=2)
 		frame_left_bottom.grid(row=1, column=0, padx=2, pady=2)
 		frame_right.grid(row=0, column=1, rowspan=2, padx=2, pady=2)
@@ -151,7 +151,7 @@ class MainWindow:
 if __name__ == '__main__':
 	root = tk.Tk()
 	root.title('Modis')
-	root.geometry('800x650')
+	root.geometry('1000x850')
 	root.resizable(width=False, height=False)
 	
 	window = MainWindow(root)
