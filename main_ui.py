@@ -1,3 +1,5 @@
+#encoding:utf-8
+
 import pdb
 #import cv2
 
@@ -5,7 +7,7 @@ import Tkinter as tk
 import tkMessageBox
 from Tkinter import W, E, N, S
 
-#from getpath import ModisMap
+from getpath import ModisMap
 from PIL import ImageTk, Image
 
 
@@ -13,8 +15,9 @@ class MainWindow:
 
 	def __init__(self, master):
 		
-		self.inputfile = 'input.png'
-		self.size = 800
+		self.inputfile = 'bright.png'
+		self.m = ModisMap(self.inputfile)
+		self.size = 800		#display image size
 
 		frame_left_top = tk.Frame(master, width=800, height=800)
 		frame_left_bottom = tk.Frame(master, width=800, height=50)
@@ -23,38 +26,14 @@ class MainWindow:
 		frame_left_bottom.grid(row=1, column=0, padx=2, pady=2)
 		frame_right.grid(row=0, column=1, rowspan=2, padx=2, pady=2)
 		
+		# frame left top
 		img = Image.open(self.inputfile)
 		self.imtk = ImageTk.PhotoImage(img.resize((self.size, self.size), Image.ANTIALIAS))
-		w = tk.Canvas(frame_left_top, width=self.size, height=self.size)
-		w.create_image(self.size/2, self.size/2, image = self.imtk)
-		w.pack()
+		self.canvas = tk.Canvas(frame_left_top, width=self.size, height=self.size)
+		self.canvas.create_image(self.size/2, self.size/2, image = self.imtk)
+		self.canvas.pack()
 
-		l1 = tk.Label(frame_right, text='entry1')
-		l2 = tk.Label(frame_right, text='entry2')
-		l3 = tk.Label(frame_right, text='entry3')
-		l4 = tk.Label(frame_right, text='entry4')
-		l5 = tk.Label(frame_right, text='entry5')
-		l1.grid(row=0, column=0, pady=20)
-		l2.grid(row=1, column=0, pady=20)
-		l3.grid(row=2, column=0, pady=20)
-		l4.grid(row=3, column=0, pady=20)
-		l5.grid(row=4, column=0, pady=20)
-
-		e1 = tk.Entry(frame_right, width=10)
-		e2 = tk.Entry(frame_right, width=10)
-		e3 = tk.Entry(frame_right, width=10)
-		e4 = tk.Entry(frame_right, width=10)
-		e1.grid(row=0, column=1)
-		e2.grid(row=1, column=1)
-		e3.grid(row=2, column=1)
-		e4.grid(row=3, column=1)
-
-		v = tk.StringVar(frame_right)
-		om = tk.OptionMenu(frame_right, v, 'option1', 'option2', 'option3')
-		om.config(width=9)
-		om.grid(row=4, column=1)
-
-
+		# frame left bottom
 		b1 = tk.Button(frame_left_bottom, text='button1')
 		b2 = tk.Button(frame_left_bottom, text='button2')
 		b3 = tk.Button(frame_left_bottom, text='button3')
@@ -65,6 +44,97 @@ class MainWindow:
 		b3.grid(row=0, column=2)
 		b4.grid(row=0, column=3)
 		b5.grid(row=0, column=4)
+
+		# frame right
+		l1 = tk.Label(frame_right, text='起点经度')
+		l2 = tk.Label(frame_right, text='起点纬度')
+		l3 = tk.Label(frame_right, text='终点经度')
+		l4 = tk.Label(frame_right, text='终点纬度')
+		l5 = tk.Label(frame_right, text='最小间距')
+		l6 = tk.Label(frame_right, text='entry6')
+		l1.grid(row=0, column=0, pady=20)
+		l2.grid(row=1, column=0, pady=20)
+		l3.grid(row=2, column=0, pady=20)
+		l4.grid(row=3, column=0, pady=20)
+		l5.grid(row=4, column=0, pady=20)
+		l6.grid(row=5, column=0, pady=20)
+
+		self.e1 = tk.Entry(frame_right, width=10)
+		self.e2 = tk.Entry(frame_right, width=10)
+		self.e3 = tk.Entry(frame_right, width=10)
+		self.e4 = tk.Entry(frame_right, width=10)
+		self.e5 = tk.Entry(frame_right, width=10)
+		self.e1.grid(row=0, column=1)
+		self.e2.grid(row=1, column=1)
+		self.e3.grid(row=2, column=1)
+		self.e4.grid(row=3, column=1)
+		self.e5.grid(row=4, column=1)
+
+		v = tk.StringVar(frame_right)
+		om = tk.OptionMenu(frame_right, v, 'option1', 'option2', 'option3')
+		om.config(width=9)
+		om.grid(row=5, column=1)
+
+		blank = tk.Label(frame_right, height=8)
+		blank.grid(row=6)
+
+		bgen = tk.Button(frame_right, command=self.__genpath,text='生成路径')
+		breset = tk.Button(frame_right, command=self.__reset, text='复位')
+		bgen.grid(row=7, column=0, columnspan=2, pady=20)
+		breset.grid(row=8, column=0, columnspan=2, pady=20)
+
+
+	# callback of bgen
+	def __genpath(self):
+		
+		# input check
+		for i in range(0, 3):
+			entries = [self.e1, self.e2, self.e3, self.e4]
+			names = ['起点经度', '起点纬度', '终点经度', '终点纬度', '最小间距']
+			s = entries[i].get()
+			try:
+				v = float(s)
+				if not 0 < v < 1:
+					raise Exception()
+			except :
+			 	tkMessageBox.showerror('Error', names[i]+'输入错误')
+			 	return
+		
+		s = self.e5.get()
+		try:
+			v = float(s)
+			if not 0 <= v <= 5:
+				raise Exception()
+		except :
+			 tkMessageBox.showerror('Error', '最小间距应在0-5范围内')
+			 return
+
+		# no input error, continue
+
+		# read input data
+		start_position = (float(self.e1.get()), float(self.e2.get()))
+		end_position = (float(self.e3.get()), float(self.e4.get()))
+		mindist = float(self.e5.get())
+
+		# paint start and end position
+		xs, ys = int(start_position[0]*self.size), int(start_position[1]*self.size)
+		xe, ye = int(end_position[0]*self.size), int(end_position[1]*self.size)
+
+		self.canvas.create_oval(xs-5, ys-5, xs+5, ys+5, fill='red')
+		self.canvas.create_oval(xe-5, ye-5, xe+5, ye+5, fill='blue')
+
+			 
+
+	# callback of breset
+	def __reset(self):
+		
+		# clear input entries
+		for e in [self.e1, self.e2, self.e3, self.e4, self.e5]:
+			e.delete(0, 'end')
+
+		# clear canvas
+		self.canvas.delete("all")
+		self.canvas.create_image(self.size/2, self.size/2, image = self.imtk)
 
 		'''
 		self.img = Image.open(self.inputfile)
