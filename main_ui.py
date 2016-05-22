@@ -19,6 +19,8 @@ class MainWindow:
 		self.m = ModisMap(self.inputfile)
 		self.size = 800		#display image size
 
+		self.model = ModisMap(self.inputfile)
+
 		frame_left_top = tk.Frame(master, width=800, height=800)
 		frame_left_bottom = tk.Frame(master, width=800, height=50)
 		frame_right = tk.Frame(master, width=200, height=850)
@@ -114,7 +116,7 @@ class MainWindow:
 		# read input data
 		start_position = (float(self.e1.get()), float(self.e2.get()))
 		end_position = (float(self.e3.get()), float(self.e4.get()))
-		mindist = float(self.e5.get())
+		margin = float(self.e5.get())
 
 		# paint start and end position
 		xs, ys = int(start_position[0]*self.size), int(start_position[1]*self.size)
@@ -122,6 +124,15 @@ class MainWindow:
 
 		self.canvas.create_oval(xs-5, ys-5, xs+5, ys+5, fill='red')
 		self.canvas.create_oval(xe-5, ye-5, xe+5, ye+5, fill='blue')
+
+		self.model.set_startend_position(start_position, end_position)
+		self.model.set_target("time")
+		self.model.set_safe_margin(margin)
+		path = self.model.getpath()
+
+		for p in path:
+			x, y = p[0]*self.size, p[1]*self.size
+			self.canvas.create_oval(x, y, x+1, y+1, fill='green')
 
 			 
 
@@ -135,87 +146,6 @@ class MainWindow:
 		# clear canvas
 		self.canvas.delete("all")
 		self.canvas.create_image(self.size/2, self.size/2, image = self.imtk)
-
-		'''
-		self.img = Image.open(self.inputfile)
-		self.imtk = ImageTk.PhotoImage(self.img.resize((self.size, self.size), Image.ANTIALIAS))
-		self.w = tk.Canvas(master, width=self.size, height=self.size)
-		self.w.create_image(self.size/2, self.size/2, image = self.imtk)
-
-		self.w.grid(row=0, column=0, rowspan=6, columnspan=4)
-
-		l1 = tk.Label(master, text='entry1')
-		l2 = tk.Label(master, text='entry2')
-		l3 = tk.Label(master, text='entry3')
-		l4 = tk.Label(master, text='entry4')
-		l1.grid(row=0, column=4)
-		l2.grid(row=1, column=4)
-		l3.grid(row=2, column=4)
-		l4.grid(row=3, column=4)
-
-		e1 = tk.Entry(master, width=15)
-		e2 = tk.Entry(master, width=15)
-		e3 = tk.Entry(master, width=15)
-		e4 = tk.Entry(master, width=15)
-		e1.grid(row=0, column=5)
-		e2.grid(row=1, column=5)
-		e3.grid(row=2, column=5)
-		e4.grid(row=3, column=5)
-
-
-		b1 = tk.Button(master, text='button1')
-		b2 = tk.Button(master, text='button2')
-		b3 = tk.Button(master, text='button3')
-		b4 = tk.Button(master, text='button4')
-		b5 = tk.Button(master, text='button5')
-		b1.grid(row=6, column=0)
-		b2.grid(row=6, column=1)
-		b3.grid(row=6, column=2)
-		b4.grid(row=6, column=3)
-		b5.grid(row=6, column=4)
-
-		#self.w.bind("<Button-1>", self.__callback)
-		#self.click_indice = 0
-		#self.start_position = (0.0, 0.0)
-		#self.end_position = (0.0, 0.0)
-	'''
-
-	
-
-	'''
-	def __callback(self, event):
-		x, y = event.x, event.y
-
-		#print x, y
-		
-		if self.click_indice == 0:
-			self.w.create_oval(x-5, y-5, x+5, y+5, fill='red')
-			self.click_indice += 1
-			self.start_position = (float(x)/self.size, float(y)/self.size)
-		
-		elif self.click_indice == 1:
-			self.w.create_oval(x-5, y-5, x+5, y+5, fill='blue')
-			self.click_indice += 1
-			self.end_position = (float(x)/self.size, float(y)/self.size)
-
-			if tkMessageBox.askokcancel(message='find path?'):
-				print 'find path'
-				#path =  self.__getpath(self.start_position, self.end_position)
-				
-				#for p in path:
-				#	x, y = p[0]*self.size, p[1]*self.size
-				#	self.w.create_oval(x, y, x+1, y+1, fill='green')
-				
-
-
-	def __getpath(self, start_position, end_position):
-		pass
-		#m = ModisMap(self.inputfile)
-		#m.set_startend_position(start_position, end_position)
-		#path, img =  m.getpath()
-		#cv2.imwrite('out.png', img)
-		#return path
-	'''
 
 
 if __name__ == '__main__':

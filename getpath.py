@@ -201,7 +201,7 @@ class ModisMap:
 	def __fuel_cost(self,x,y):
 		v = self.matrix[x][y]/10
 		return v**3+1
-	
+
 	# 初始化边集
 	def __init_edge_cost(self):
 		"""
