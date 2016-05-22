@@ -22,8 +22,11 @@ class ModisMap:
 		self.start_point = (0, 0)
 		self.end_point = (0, 0)
 		self.is_set = False		#weather start point and end point is set,起点和终点是否被设置
-		
+
+		#use a str to represent the target to optimize, the correspondence is as follows
+		#时间：time, 油耗：fuel etc.
 		self.target = None  	# target to optimize，需要优化的目标
+
 		self.safe_margin = None 	#safe margin，安全距离
 		self.feasible_set = None 	#feasible set，可行域
 		self.edges = None	#cost edges，为Dijkstra算法生成的边的集合
@@ -38,7 +41,7 @@ class ModisMap:
 		print("initalize distribution")
 
 
-	# 	初始化像素皩的速度和方向，在考虑到时间纬度时速度和方向的信息
+	# 	初始化像素点的速度和方向，在考虑到时间纬度时速度和方向的信息
 	# todo:to save time, it may invoke self.__get_search_area function first, and then only initalize speed and direction of pixs in the feasible set
 	# todo: what's more, since threre are only a few pixs in the image will move, so the result may be saved in sparse format, which will accelerate other functions
 	def __init_speed_direction(self):
@@ -72,7 +75,9 @@ class ModisMap:
 
 
 	# 设置需要优化的目标，比如时间、油耗等等
+
 	def set_target(self,target):
+
 		self.target = target
 		print("optimize target to be:"+str(target))
 
@@ -89,11 +94,12 @@ class ModisMap:
 		assert self.is_set
 
 		path = self.getpath_absolute()
-		img = self.paint_path(path)
+		#img = self.paint_path(path)
 
 		relative_path = [(p[1]/float(self.h), p[0]/float(self.w)) for p in path]
 
-		return relative_path, img
+		#return relative_path, img
+		return relative_path
 
 
 	# 根据起点和终点，获取最终的路径
@@ -184,14 +190,17 @@ class ModisMap:
 	# todo: If we do not use the detifition of the pix point cost, we may need to change to algorithm a lot
 	def __get_target_cost(self, x, y):
 		assert self.target is not None
-		v = self.matrix[x][y]/10
-		if self.target=="speed":
-			return v+1
+		if self.target=="fuel":
+			return self.__fuel_cost(x,y)
 		elif self.target=="time":
-			return v**2+1
-		else:
-			return v**3+1
+			return self.__time_cost(x,y)
 
+	def __time_cost(self,x,y):
+		v = self.matrix[x][y]/10
+		return v**2+1
+	def __fuel_cost(self,x,y):
+		v = self.matrix[x][y]/10
+		return v**3+1
 	
 	# 初始化边集
 	def __init_edge_cost(self):
@@ -246,7 +255,7 @@ if __name__ == '__main__':
 	
 	m = ModisMap('input.png')
 	m.set_startend_point(start_point, end_point)
-	m.set_target("speed")
+	m.set_target("time")
 	m.set_safe_margin(5)
 	path =  m.getpath_absolute()
 
