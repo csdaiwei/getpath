@@ -196,10 +196,12 @@ class ModisMap:
 			return self.__time_cost(x,y)
 
 	def __time_cost(self,x,y):
-		v = self.matrix[x][y]/10
-		return v**2+1
+		v = self.matrix[x][y]
+		if v<10:
+			return 1
+		return v+1
 	def __fuel_cost(self,x,y):
-		v = self.matrix[x][y]/10
+		v = self.matrix[x][y]
 		return v**3+1
 
 	# 初始化边集

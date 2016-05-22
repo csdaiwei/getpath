@@ -52,7 +52,7 @@ class MainWindow:
 		b2 = tk.Radiobutton(frame_left_bottom, text="点击设置终点", variable=self.v, value=2,command=self.__set_end_point_click)
 		b3 = tk.Button(frame_left_bottom, text='点击更换modis图像')
 		b4 = tk.Button(frame_left_bottom, text='点击显示risk图片')
-		b5 = tk.Button(frame_left_bottom, text='button5')
+		b5 = tk.Button(frame_left_bottom, text='其他功能')
 		b1.grid(row=0, column=0)
 		b2.grid(row=0, column=1)
 		b3.grid(row=0, column=2)
