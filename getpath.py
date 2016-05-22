@@ -89,11 +89,12 @@ class ModisMap:
 		assert self.is_set
 
 		path = self.getpath_absolute()
-		img = self.paint_path(path)
+		#img = self.paint_path(path)
 
 		relative_path = [(p[1]/float(self.h), p[0]/float(self.w)) for p in path]
 
-		return relative_path, img
+		#return relative_path, img
+		return relative_path
 
 
 	# 根据起点和终点，获取最终的路径
@@ -192,7 +193,7 @@ class ModisMap:
 		else:
 			return v**3+1
 
-	
+
 	# 初始化边集
 	def __init_edge_cost(self):
 		"""
