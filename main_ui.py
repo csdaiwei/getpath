@@ -85,8 +85,13 @@ class MainWindow:
 		self.e5.grid(row=4, column=1)
 		self.e5.insert(0,"1")
 
-		v = tk.StringVar(frame_right)
-		om = tk.OptionMenu(frame_right, v, '时间', '油耗', '路程')
+
+
+		option_list = ['时间', '油耗', '路程']
+		v = tk.StringVar(frame_right,option_list[0])
+		om = tk.OptionMenu(frame_right, v, *option_list)
+		# om = tk.OptionMenu(frame_right, v, '时间', '油耗', '路程')
+
 		om.config(width=9)
 		om.grid(row=5, column=1)
 
