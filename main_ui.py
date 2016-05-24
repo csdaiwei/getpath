@@ -1,12 +1,10 @@
 #encoding:utf-8
 
 import pdb
-#import cv2
 
 import Tkinter as tk
-from Tkinter import *
 import tkMessageBox
-from Tkinter import W, E, N, S
+from Tkinter import *
 
 from getpath import ModisMap
 from PIL import ImageTk, Image
@@ -16,8 +14,6 @@ class MainWindow:
 	
 	
 	def __init__(self, master):
-		self.v = StringVar()
-		self.v.set("L")
 		self.inputfile = 'bright.png'
 		self.m = ModisMap(self.inputfile)
 		self.size = 800		#display image size
@@ -28,6 +24,8 @@ class MainWindow:
 		self.click_carvas_to_set_start_point = True
 		self.model = ModisMap(self.inputfile)
 
+		
+		# build ui elements 
 		frame_left_top = tk.Frame(master, width=800, height=800)
 		frame_left_bottom = tk.Frame(master, width=800, height=50)
 		frame_right = tk.Frame(master, width=200, height=850)
@@ -45,9 +43,9 @@ class MainWindow:
 
 
 
-		b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", variable=self.v, value=1,command=self.__set_start_point_click)
+		b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", value=1, command=self.__set_start_point_click)
 		b1.select()
-		b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", variable=self.v, value=2,command=self.__set_end_point_click)
+		b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", value=2, command=self.__set_end_point_click)
 		b3 = tk.Button(frame_left_bottom, text='更换modis图像')
 		b4 = tk.Button(frame_left_bottom, text='显示risk图片')
 		b5 = tk.Button(frame_left_bottom, text='其他功能')
