@@ -13,10 +13,8 @@ from PIL import ImageTk, Image
 
 
 class MainWindow:
-	def __set_start_point_click(self):
-		self.click_carvas_to_set_start_point = True
-	def __set_end_point_click(self):
-		self.click_carvas_to_set_start_point = False
+	
+	
 	def __init__(self, master):
 		self.v = StringVar()
 		self.v.set("L")
@@ -47,11 +45,11 @@ class MainWindow:
 
 
 
-		b1 = tk.Radiobutton(frame_left_bottom, text="点击设置起点", variable=self.v, value=1,command=self.__set_start_point_click)
+		b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", variable=self.v, value=1,command=self.__set_start_point_click)
 		b1.select()
-		b2 = tk.Radiobutton(frame_left_bottom, text="点击设置终点", variable=self.v, value=2,command=self.__set_end_point_click)
-		b3 = tk.Button(frame_left_bottom, text='点击更换modis图像')
-		b4 = tk.Button(frame_left_bottom, text='点击显示risk图片')
+		b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", variable=self.v, value=2,command=self.__set_end_point_click)
+		b3 = tk.Button(frame_left_bottom, text='更换modis图像')
+		b4 = tk.Button(frame_left_bottom, text='显示risk图片')
 		b5 = tk.Button(frame_left_bottom, text='其他功能')
 		b1.grid(row=0, column=0)
 		b2.grid(row=0, column=1)
@@ -86,18 +84,11 @@ class MainWindow:
 		self.e5.insert(0,"1")
 
 
-
 		option_list = ['时间', '油耗', '路程']
 		v = tk.StringVar(frame_right,option_list[0])
 		om = tk.OptionMenu(frame_right, v, *option_list)
-		# om = tk.OptionMenu(frame_right, v, '时间', '油耗', '路程')
-
 		om.config(width=9)
 		om.grid(row=5, column=1)
-
-		# Radiobutton(frame_left_bottom, text="点击设置起点", variable=self.v, value=1,command=self.__set_start_point_click)
-
-
 
 		blank = tk.Label(frame_right, height=8)
 		blank.grid(row=6)
@@ -111,6 +102,51 @@ class MainWindow:
 		self.e2.bind('<Key>',self.__start_point_change)
 		self.e3.bind('<Key>',self.__end_point_change)
 		self.e4.bind('<Key>',self.__end_point_change)
+
+
+	def __draw_start_point(self):
+		self.__delete_carvas_item(self.carvas_start_point)			# delete old and draw new
+		start_position = (float(self.e1.get()), float(self.e2.get()))
+		x, y = int(start_position[0]*self.size), int(start_position[1]*self.size)
+		self.carvas_start_point = self.canvas.create_oval(x-5, y-5, x+5, y+5, fill='red')
+
+
+	def __draw_end_point(self):
+		self.__delete_carvas_item(self.carvas_end_point)			# delete old and draw new
+		end_position = (float(self.e3.get()), float(self.e4.get()))
+		x, y = int(end_position[0]*self.size), int(end_position[1]*self.size)
+		self.carvas_end_point = self.canvas.create_oval(x-5, y-5, x+5, y+5, fill='blue')
+
+
+	def __draw_path(self):
+		self.__delete_path()
+		for i in range(len(self.path)-1):
+			current_point, next_point = self.path[i], self.path[i+1]
+			current_x, current_y  = current_point[0]*self.size, current_point[1]*self.size
+			next_x, next_y = next_point[0]*self.size, next_point[1]*self.size
+			carvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green')
+			self.carvas_path.append(carvas_path_point)
+
+	
+	def __delete_carvas_item(self, item):
+		if item is not None:
+			self.canvas.delete(item)
+
+	def __delete_path(self):
+		for carvas_path_point in self.carvas_path:
+			self.__delete_carvas_item(carvas_path_point)
+		self.carvas_path = []
+
+
+	# callback functions below
+
+	def __set_start_point_click(self):
+		self.click_carvas_to_set_start_point = True
+	
+	def __set_end_point_click(self):
+		self.click_carvas_to_set_start_point = False
+	
+
 	def __start_point_change(self,event):
 		try:
 			print(self.e1.get())
@@ -118,31 +154,12 @@ class MainWindow:
 			self.__draw_start_point()
 		except:
 			pass
+	
 	def __end_point_change(self,event):
 		try:
 			self.__draw_end_point()
 		except:
 			pass
-	def __draw_start_point(self):
-		self.__delete_start_point()
-		start_position = (float(self.e1.get()), float(self.e2.get()))
-		xs, ys = int(start_position[0]*self.size), int(start_position[1]*self.size)
-		self.carvas_start_point = self.canvas.create_oval(xs-5, ys-5, xs+5, ys+5, fill='red')
-
-	def __draw_end_point(self):
-		self.__delete_end_point()
-		end_position = (float(self.e3.get()), float(self.e4.get()))
-		xe, ye = int(end_position[0]*self.size), int(end_position[1]*self.size)
-		self.carvas_end_point = self.canvas.create_oval(xe-5, ye-5, xe+5, ye+5, fill='blue')
-
-
-	def __delete_carvas_point(self,point):
-		if point is not None:
-			self.canvas.delete(point)
-	def __delete_start_point(self):
-		self.__delete_carvas_point(self.carvas_start_point)
-	def __delete_end_point(self):
-		self.__delete_carvas_point(self.carvas_end_point)
 
 	# canvas click event
 	def __canvas_click(self,event):
@@ -163,10 +180,8 @@ class MainWindow:
 			self.e4.delete(0,'end')
 			self.e4.insert(0,y_position)
 			self.__draw_end_point()
-	def __delete_path(self):
-		for carvas_path_point in self.carvas_path:
-			self.__delete_carvas_point(carvas_path_point)
-		self.carvas_path = []
+
+	
 	# callback of bgen
 	def __genpath(self):
 		
@@ -205,23 +220,7 @@ class MainWindow:
 		self.model.set_safe_margin(margin)
 		self.path = self.model.getpath()
 		self.__draw_path()
-
-	def __draw_path(self):
-		self.__delete_path()
-		for i in range(len(self.path)-1):
-			current_point = self.path[i]
-			next_point = self.path[i+1]
-			current_x,current_y  = current_point[0]*self.size,current_point[1]*self.size
-			next_x,next_y = next_point[0]*self.size,next_point[1]*self.size
-			carvas_path_point = self.canvas.create_oval(current_x, current_y, next_x, next_y, fill='green')
-			self.carvas_path.append(carvas_path_point)
-		# for p in self.path:
-		# 	print(p)
-		# 	x, y = p[0]*self.size, p[1]*self.size
-		# 	carvas_path_point = self.canvas.create_oval(x, y, x+1, y+1, fill='green')
-		# 	self.carvas_path.append(carvas_path_point)
-
-			 
+		
 
 	# callback of breset
 	def __reset(self):
@@ -229,6 +228,7 @@ class MainWindow:
 		# clear input entries
 		for e in [self.e1, self.e2, self.e3, self.e4, self.e5]:
 			e.delete(0, 'end')
+		self.e5.insert(0,"1")
 
 		# clear canvas
 		self.canvas.delete("all")
