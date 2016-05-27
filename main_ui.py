@@ -15,8 +15,6 @@ class MainWindow:
 	
 	def __init__(self, master):
 		self.inputfile = 'bright.png'
-		self.m = ModisMap(self.inputfile)
-		self.size = 800		#display image size
 
 		self.carvas_start_point = None
 		self.carvas_end_point = None
@@ -24,25 +22,41 @@ class MainWindow:
 		self.click_carvas_to_set_start_point = True
 		self.model = ModisMap(self.inputfile)
 
+		img = Image.open(self.inputfile)
+		self.imgwidth, self.imgheight = img.size
+		self.imtk = ImageTk.PhotoImage(img)
+
 		
-		# build ui elements 
+		# start to build ui elements 
+		# first of all, build main framework containing 3 frames
 		frame_left_top = tk.Frame(master, width=800, height=800)
-		frame_left_bottom = tk.Frame(master, width=800, height=50)
+		frame_left_bottom = tk.Frame(master, width=800, height=60)
 		frame_right = tk.Frame(master, width=200, height=850)
 		frame_left_top.grid(row=0, column=0, padx=2, pady=2)
 		frame_left_bottom.grid(row=1, column=0, padx=2, pady=2)
 		frame_right.grid(row=0, column=1, rowspan=2, padx=2, pady=2)
 		
-		# frame left top
-		img = Image.open(self.inputfile)
-		self.imtk = ImageTk.PhotoImage(img.resize((self.size, self.size), Image.ANTIALIAS))
-		self.canvas = tk.Canvas(frame_left_top, width=self.size, height=self.size)
-		self.canvas.create_image(self.size/2, self.size/2, image = self.imtk)
+		# build frame left top
+		self.canvas = tk.Canvas(frame_left_top, width=800, height=800)
+		self.canvas.create_image(0, 0, image = self.imtk, anchor='nw')
 		self.canvas.bind("<Button-1>", self.__canvas_click)
+
+		xbar = tk.Scrollbar(frame_left_top, orient=HORIZONTAL)
+		xbar.config(command=self.canvas.xview)
+		xbar.pack(side=BOTTOM, fill=X)
+
+		ybar = tk.Scrollbar(frame_left_top)
+		ybar.config(command=self.canvas.yview)
+		ybar.pack(side=RIGHT, fill=Y)
+
+		self.canvas.config(scrollregion=self.canvas.bbox(ALL))
+		self.canvas.config(xscrollcommand=xbar.set)
+		self.canvas.config(yscrollcommand=ybar.set)
+
 		self.canvas.pack()
 
 
-
+		# build frame left bottom
 		b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", value=1, command=self.__set_start_point_click)
 		b1.select()
 		b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", value=2, command=self.__set_end_point_click)
@@ -55,7 +69,7 @@ class MainWindow:
 		b4.grid(row=0, column=3)
 		b5.grid(row=0, column=4)
 
-		# frame right
+		# build frame right
 		l1 = tk.Label(frame_right, text='起点经度')
 		l2 = tk.Label(frame_right, text='起点纬度')
 		l3 = tk.Label(frame_right, text='终点经度')
@@ -105,14 +119,14 @@ class MainWindow:
 	def __draw_start_point(self):
 		self.__delete_carvas_item(self.carvas_start_point)			# delete old and draw new
 		start_position = (float(self.e1.get()), float(self.e2.get()))
-		x, y = int(start_position[0]*self.size), int(start_position[1]*self.size)
+		x, y = int(start_position[0]*self.imgwidth), int(start_position[1]*self.imgheight)
 		self.carvas_start_point = self.canvas.create_oval(x-5, y-5, x+5, y+5, fill='red')
 
 
 	def __draw_end_point(self):
 		self.__delete_carvas_item(self.carvas_end_point)			# delete old and draw new
 		end_position = (float(self.e3.get()), float(self.e4.get()))
-		x, y = int(end_position[0]*self.size), int(end_position[1]*self.size)
+		x, y = int(end_position[0]*self.imgwidth), int(end_position[1]*self.imgheight)
 		self.carvas_end_point = self.canvas.create_oval(x-5, y-5, x+5, y+5, fill='blue')
 
 
@@ -120,8 +134,8 @@ class MainWindow:
 		self.__delete_path()
 		for i in range(len(self.path)-1):
 			current_point, next_point = self.path[i], self.path[i+1]
-			current_x, current_y  = current_point[0]*self.size, current_point[1]*self.size
-			next_x, next_y = next_point[0]*self.size, next_point[1]*self.size
+			current_x, current_y  = current_point[0]*self.imgwidth, current_point[1]*self.imgheight
+			next_x, next_y = next_point[0]*self.imgwidth, next_point[1]*self.imgheight
 			carvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green')
 			self.carvas_path.append(carvas_path_point)
 
@@ -147,8 +161,6 @@ class MainWindow:
 
 	def __start_point_change(self,event):
 		try:
-			print(self.e1.get())
-			print(self.e2.get())
 			self.__draw_start_point()
 		except:
 			pass
@@ -161,10 +173,10 @@ class MainWindow:
 
 	# canvas click event
 	def __canvas_click(self,event):
-		x, y = event.x, event.y
-		self.start_position = (float(x)/self.size, float(y)/self.size)
-		x_position = float(x)/self.size
-		y_position = float(y)/self.size
+		x, y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+
+		x_position = float(x)/self.imgwidth
+		y_position = float(y)/self.imgheight
 
 		if self.click_carvas_to_set_start_point:
 			self.e1.delete(0,'end')
@@ -230,14 +242,13 @@ class MainWindow:
 
 		# clear canvas
 		self.canvas.delete("all")
-		self.canvas.create_image(self.size/2, self.size/2, image = self.imtk)
+		self.canvas.create_image(0, 0, image = self.imtk, anchor='nw')
 
 
 
 if __name__ == '__main__':
 	root = tk.Tk()
 	root.title('Modis')
-	root.geometry('1000x850')
 	root.resizable(width=False, height=False)
 	
 	window = MainWindow(root)
