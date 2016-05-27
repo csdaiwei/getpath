@@ -16,14 +16,19 @@ class MainWindow:
 	def __init__(self, master):
 		self.inputfile = 'bright.png'
 
+		self.model = ModisMap(self.inputfile)
+		self.path = []
+
 		self.carvas_start_point = None
 		self.carvas_end_point = None
 		self.carvas_path = []
 		self.click_carvas_to_set_start_point = True
-		self.model = ModisMap(self.inputfile)
+
+
+		self.scale_level = [0.05, 0.1, 0.2, 0.5, 0.75, 1.0, 1.5, 2]
+		self.current_scale = 1.0
 
 		img = Image.open(self.inputfile)
-		self.imgwidth, self.imgheight = img.size
 		self.imtk = ImageTk.PhotoImage(img)
 
 		
@@ -55,19 +60,28 @@ class MainWindow:
 
 		self.canvas.pack()
 
-
 		# build frame left bottom
 		b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", value=1, command=self.__set_start_point_click)
 		b1.select()
 		b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", value=2, command=self.__set_end_point_click)
 		b3 = tk.Button(frame_left_bottom, text='更换modis图像')
 		b4 = tk.Button(frame_left_bottom, text='显示risk图片')
-		b5 = tk.Button(frame_left_bottom, text='其他功能')
+		self.b5 = tk.Button(frame_left_bottom, text='-', width=2, command=self.__zoomout)
+		self.b6 = tk.Button(frame_left_bottom, text='+', width=2, command=self.__zoomin)
 		b1.grid(row=0, column=0)
 		b2.grid(row=0, column=1)
 		b3.grid(row=0, column=2)
 		b4.grid(row=0, column=3)
-		b5.grid(row=0, column=4)
+		self.b5.grid(row=0, column=5)
+		self.b6.grid(row=0, column=7)
+
+		blank = tk.Label(frame_left_bottom)
+		blank.grid(row=0, column=4, padx=40)
+		
+		self.scale_text = tk.StringVar()
+		self.scale_text.set('100%')
+		scale_label = tk.Label(frame_left_bottom, textvariable=self.scale_text, width=6)
+		scale_label.grid(row=0, column=6)
 
 		# build frame right
 		l1 = tk.Label(frame_right, text='起点经度')
@@ -117,25 +131,37 @@ class MainWindow:
 
 
 	def __draw_start_point(self):
+		
+		if self.e1.get() == '' or self.e2.get()=='':
+			return ;
+
 		self.__delete_carvas_item(self.carvas_start_point)			# delete old and draw new
 		start_position = (float(self.e1.get()), float(self.e2.get()))
-		x, y = int(start_position[0]*self.imgwidth), int(start_position[1]*self.imgheight)
+		x, y = int(start_position[0]*self.imtk.width()), int(start_position[1]*self.imtk.height())
 		self.carvas_start_point = self.canvas.create_oval(x-5, y-5, x+5, y+5, fill='red')
 
 
 	def __draw_end_point(self):
+		
+		if self.e3.get() == '' or self.e4.get()=='':
+			return ;
+
 		self.__delete_carvas_item(self.carvas_end_point)			# delete old and draw new
 		end_position = (float(self.e3.get()), float(self.e4.get()))
-		x, y = int(end_position[0]*self.imgwidth), int(end_position[1]*self.imgheight)
+		x, y = int(end_position[0]*self.imtk.width()), int(end_position[1]*self.imtk.height())
 		self.carvas_end_point = self.canvas.create_oval(x-5, y-5, x+5, y+5, fill='blue')
 
 
 	def __draw_path(self):
-		self.__delete_path()
+		
+		for carvas_path_point in self.carvas_path:
+			self.__delete_carvas_item(carvas_path_point)
+		self.carvas_path = []
+
 		for i in range(len(self.path)-1):
-			current_point, next_point = self.path[i], self.path[i+1]
-			current_x, current_y  = current_point[0]*self.imgwidth, current_point[1]*self.imgheight
-			next_x, next_y = next_point[0]*self.imgwidth, next_point[1]*self.imgheight
+			current_position, next_position = self.path[i], self.path[i+1]
+			current_x, current_y  = current_position[0]*self.imtk.width(), current_position[1]*self.imtk.height()
+			next_x, next_y = next_position[0]*self.imtk.width(), next_position[1]*self.imtk.height()
 			carvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green')
 			self.carvas_path.append(carvas_path_point)
 
@@ -144,11 +170,21 @@ class MainWindow:
 		if item is not None:
 			self.canvas.delete(item)
 
-	def __delete_path(self):
-		for carvas_path_point in self.carvas_path:
-			self.__delete_carvas_item(carvas_path_point)
-		self.carvas_path = []
 
+	# rescale canvas
+	def __rescale(self, new_scale):
+		self.current_scale = new_scale
+		self.scale_text.set('%d'%(new_scale*100)+'%')
+
+		img = Image.open(self.inputfile)
+		new_size = (int(img.size[0] * new_scale), int(img.size[1] * new_scale))
+		self.imtk = ImageTk.PhotoImage(img.resize(new_size, Image.ANTIALIAS))
+		self.canvas.create_image(0, 0, image = self.imtk, anchor='nw')
+		self.canvas.config(scrollregion=(0,0, new_size[0], new_size[1]))
+
+		self.__draw_start_point()
+		self.__draw_end_point()
+		self.__draw_path()
 
 	# callback functions below
 
@@ -159,24 +195,27 @@ class MainWindow:
 		self.click_carvas_to_set_start_point = False
 	
 
-	def __start_point_change(self,event):
+	def __start_point_change(self, event):
 		try:
 			self.__draw_start_point()
 		except:
 			pass
 	
-	def __end_point_change(self,event):
+	def __end_point_change(self, event):
 		try:
 			self.__draw_end_point()
 		except:
 			pass
 
 	# canvas click event
-	def __canvas_click(self,event):
+	def __canvas_click(self, event):
 		x, y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
 
-		x_position = float(x)/self.imgwidth
-		y_position = float(y)/self.imgheight
+		x_position = float(x)/self.imtk.width()
+		y_position = float(y)/self.imtk.height()
+
+		if x_position >= 1 or y_position >= 1:
+			return ;
 
 		if self.click_carvas_to_set_start_point:
 			self.e1.delete(0,'end')
@@ -243,6 +282,31 @@ class MainWindow:
 		# clear canvas
 		self.canvas.delete("all")
 		self.canvas.create_image(0, 0, image = self.imtk, anchor='nw')
+
+
+	def __zoomout(self):
+		scale = self.current_scale
+		index = self.scale_level.index(scale)
+		assert index >= 1
+		new_scale = self.scale_level[index-1]
+		self.__rescale(new_scale)
+
+		if index-1 == 0:
+			self.b5.config(state='disabled')
+		if index == len(self.scale_level) -1:
+			self.b6.config(state='normal')
+
+	def __zoomin(self):
+		scale = self.current_scale
+		index = self.scale_level.index(scale)
+		assert index <= len(self.scale_level)-2
+		new_scale = self.scale_level[index+1]
+		self.__rescale(new_scale)
+
+		if index+1 == len(self.scale_level) -1:
+			self.b6.config(state='disabled')
+		if index == 0:
+			self.b5.config(state='normal')
 
 
 
