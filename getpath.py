@@ -13,20 +13,20 @@ class ModisMap:
 	EXTEND_SEARCH_SIZE = 10    # extend search area within the block of (start_point, end_point)
 	MAX_PASSABLE_COLOR = 70     # points with larger grey value are not passable
 	PATH_EDGE_SIZE = 0          # use mean value of an area to represent color of a point
-	PROB_ENLAGRED_TIMES = 100	# enlarge the probability of a pixel being thin ice/cloud by XXX times
+	PROB_ENLAGRED_TIMES = 10	# enlarge the probability of a pixel being thin ice/cloud by XXX times
 	PIXEL_RATIO = 0.7			# the importance of of a pixel's gray level in calculating cost, and that of corresponding pixel's
 								# probability of thin ice/cloud is 1-XXX
-	INF_THRESHOLD = 0.5			# if the pixel's probability of being thick ice/cloud lager than it, then this pixel is infeasible
+	INF_THRESHOLD = 0.7			# if the pixel's probability of being thick ice/cloud lager than it, then this pixel is infeasible
 
 
 	def __init__(self, inputfile, probfile):		# probfile records the probability of a pixel being sea, cloud or ice
 		s = probfile.split('_')
 		f = open(probfile,'rb')
 		self.prob = pickle.load(f)
-		self.prob_x_start = int(s[-4])
-		self.prob_x_end = int(s[-3])
-		self.prob_y_start = int(s[-2])
-		self.prob_y_end = int(s[-1].split('.')[-2])
+		self.prob_y_start = int(s[-4])
+		self.prob_y_end = int(s[-3])
+		self.prob_x_start = int(s[-2])
+		self.prob_x_end = int(s[-1].split('.')[-2])
 		self.img = cv2.imread(inputfile)
 		self.matrix = self.img[:, :, 0]           # modis images are grey
 		self.w, self.h = self.matrix.shape
@@ -104,6 +104,7 @@ class ModisMap:
 				self.risk_region.add((xx, -yy))
 				self.risk_region.add((-xx, yy))
 				self.risk_region.add((-xx, -yy))
+		#print(self.risk_region)
 
 
 	# 根据起点和终点，获取最终的路径
@@ -210,7 +211,7 @@ class ModisMap:
 						current_coor = np.array([x,y])
 						offset = np.array(list(self.risk_region))
 						result = offset + current_coor
-						self.infeasible_set.union(set(result.flat))
+						self.infeasible_set = self.infeasible_set | (set(map(tuple, result)))
 
 
 	#初始化可行域，在后续初始化Dijkstra算法的边集时，可行域里面的点都是可达的，其余点都是不可达的
