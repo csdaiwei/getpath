@@ -18,4 +18,4 @@ def dijkstra(edges, f, t):
                 if v2 not in seen:
                     heappush(q, (cost+c, v2, path))
 
-    return float("inf")
+    return (float("inf"),())
