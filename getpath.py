@@ -1,6 +1,6 @@
 #encoding:utf-8
-import pdb
 import cv2
+import pickle
 import numpy as np
 
 from math import sqrt
@@ -8,17 +8,28 @@ from dijkstra_algorithm import dijkstra
 
 
 class ModisMap:
-	
+
 
 	EXTEND_SEARCH_SIZE = 10    # extend search area within the block of (start_point, end_point)
 	MAX_PASSABLE_COLOR = 70     # points with larger grey value are not passable
 	PATH_EDGE_SIZE = 0          # use mean value of an area to represent color of a point
+	PROB_ENLAGRED_TIMES = 100	# enlarge the probability of a pixel being thin ice/cloud by XXX times
+	PIXEL_RATIO = 0.7			# the importance of of a pixel's gray level in calculating cost, and that of corresponding pixel's
+								# probability of thin ice/cloud is 1-XXX
+	INF_THRESHOLD = 0.5			# if the pixel's probability of being thick ice/cloud lager than it, then this pixel is infeasible
 
 
-	def __init__(self, inputfile):
+	def __init__(self, inputfile, probfile):		# probfile records the probability of a pixel being sea, cloud or ice
+		s = probfile.split('_')
+		f = open(probfile,'rb')
+		self.prob = pickle.load(f)
+		self.prob_x_start = int(s[-4])
+		self.prob_x_end = int(s[-3])
+		self.prob_y_start = int(s[-2])
+		self.prob_y_end = int(s[-1].split('.')[-2])
 		self.img = cv2.imread(inputfile)
 		self.matrix = self.img[:, :, 0]           # modis images are grey
-		self.w, self.h = self.matrix.shape 
+		self.w, self.h = self.matrix.shape
 		self.start_point = (0, 0)
 		self.end_point = (0, 0)
 		self.is_set = False		#weather start point and end point is set,起点和终点是否被设置
@@ -86,6 +97,13 @@ class ModisMap:
 	def set_safe_margin(self,safe_margin):
 		self.safe_margin = safe_margin
 		print("safe margin is set to be:"+str(safe_margin))
+		self.risk_region = set([])
+		for xx in range(0, int(self.safe_margin)):
+			for yy in range(0, int(self.safe_margin)):
+				self.risk_region.add((xx, yy))
+				self.risk_region.add((xx, -yy))
+				self.risk_region.add((-xx, yy))
+				self.risk_region.add((-xx, -yy))
 
 
 	# 根据起点和终点，获取最终的路径
@@ -107,7 +125,7 @@ class ModisMap:
 	def getpath_absolute(self):
 
 
-		# convert image to weighted graph 
+		# convert image to weighted graph
 		start_point = self.start_point
 		end_point = self.end_point
 		# edges = self.__matrix2edge(start_point, end_point)
@@ -118,13 +136,14 @@ class ModisMap:
 
 		self.__init_distribution()
 		self.__init_speed_direction()
-		self.__init_feasible_region()
+		#self.__init_feasible_region()
+		self.__init_infeasible_set()
 		self.__init_edge_cost()
 		# todo:safe check , assert all the prerequisite conditions are initalized
 		assert self.is_set
 		assert self.target is not None
 		assert self.safe_margin is not None
-		assert self.feasible_set is not None
+		#assert self.feasible_set is not None
 
 		cost, path = dijkstra(self.edges, start_index, end_index)
 
@@ -138,7 +157,7 @@ class ModisMap:
 	# paint the path
 	def paint_path(self, path_points):
 		w, h = self.matrix.shape
-	
+
 		img = self.img
 		img = self.__img_fill(img, path_points, [0, 255, 0], area=0)      # path as green
 		img = self.__img_fill(img, [self.start_point], [0, 0, 255], area=2)    # start point as red
@@ -146,6 +165,9 @@ class ModisMap:
 
 		return img
 
+	# judge whether a pixel is in the range of 'probability matrix'
+	def __is_in(self, x, y):
+		return (x > self.prob_x_start and y > self.prob_y_start and x < self.prob_x_end and y < self.prob_y_end)
 
 	# 判断一个点是否可达
 	# todo: this function needs to be override
@@ -155,6 +177,7 @@ class ModisMap:
 		:type x:int x cooridate of matrix,
 		:type y:int y cooridate of matrix,
 		:rtype:bool whether (x,y) is feasible
+
 		"""
 		return self.matrix[x][y] < ModisMap.MAX_PASSABLE_COLOR
 
@@ -169,6 +192,25 @@ class ModisMap:
 		y_search_area[0] = min(self.start_point[1], self.end_point[1]) - ModisMap.EXTEND_SEARCH_SIZE
 		y_search_area[1] = max(self.start_point[1], self.end_point[1]) + ModisMap.EXTEND_SEARCH_SIZE
 		return x_search_area,y_search_area
+
+
+	# find unreachable area
+	def __init_infeasible_set(self):
+		self.infeasible_set = set([])
+		x_search_area,y_search_area = self.__get_search_area()
+		for x in range(x_search_area[0], x_search_area[1]):
+			for y in range(y_search_area[0], y_search_area[1]):
+				# if the pixel is not in the range of probability file
+				if not self.__is_in(x, y):
+					if self.matrix[x][y] > ModisMap.MAX_PASSABLE_COLOR:
+						self.infeasible_set.add((x, y))
+				else:
+					# if the probability of the pixel being thick ice/cloud larger than INF_THRESHOLD, then we treat this pixel as infeasible
+					if self.prob[x-self.prob_x_start, y-self.prob_y_start, 2] > ModisMap.INF_THRESHOLD:
+						current_coor = np.array([x,y])
+						offset = np.array(list(self.risk_region))
+						result = offset + current_coor
+						self.infeasible_set.union(set(result.flat))
 
 
 	#初始化可行域，在后续初始化Dijkstra算法的边集时，可行域里面的点都是可达的，其余点都是不可达的
@@ -209,7 +251,7 @@ class ModisMap:
 		"""
 		intialize cost of egdes
 		"""
-		assert self.feasible_set is not None
+		#assert self.feasible_set is not None
 		x_search_area,y_search_area = self.__get_search_area()
 		offset_list = [[1, 0], [-1, 0], [0, 1], [0, -1],
 				  [1, 1], [1, -1], [-1, 1], [-1, -1]]
@@ -221,12 +263,22 @@ class ModisMap:
 					offset = offset_list[index]
 					p1 = (x, y)
 					p2 = (x+offset[0], y+offset[1])
-					if p1 in self.feasible_set and p2 in self.feasible_set:
+					#if p1 in self.feasible_set and p2 in self.feasible_set:
+					if p1 not in self.infeasible_set and p2 not in self.infeasible_set:
 						p1_index = self.__coor2index(p1[0], p1[1])
 						p2_index = self.__coor2index(p2[0], p2[1])
 
-						p1_cost = self.__get_target_cost(p1[0], p1[1])
-						p2_cost = self.__get_target_cost(p2[0], p2[1])
+						# when calculating a pixel's cost, take its probability of being thin ice/cloud into consideration
+						if not self.__is_in(p1[0], p1[1]):	#out of range
+							p1_cost = self.__get_target_cost(p1[0], p1[1])
+						else:
+							p1_cost = ModisMap.PIXEL_RATIO * self.__get_target_cost(p1[0], p1[1]) + \
+								  	  (1-ModisMap.PIXEL_RATIO) * self.prob[p1[0]-self.prob_x_start, p1[1]-self.prob_y_start, 1] * ModisMap.PROB_ENLAGRED_TIMES
+						if not self.__is_in(p2[0], p2[1]):
+							p2_cost = self.__get_target_cost(p2[0], p2[1])
+						else:
+							p2_cost = ModisMap.PIXEL_RATIO * self.__get_target_cost(p2[0], p2[1]) + \
+								  	  (1-ModisMap.PIXEL_RATIO) * self.prob[p2[0]-self.prob_x_start, p2[1]-self.prob_y_start, 1] * ModisMap.PROB_ENLAGRED_TIMES
 						dist = dist_list[index]
 						cost = (p1_cost+p2_cost) * dist
 						self.edges.append((p1_index, p2_index, cost))

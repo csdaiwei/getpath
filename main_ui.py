@@ -14,9 +14,11 @@ class MainWindow:
 	
 	
 	def __init__(self, master):
-		self.inputfile = 'bright.png'
+		#self.inputfile = 'bright.png'
+		self.inputfile = 'MOD02QKM.A2014005.2110.006.2014218155544_band1.jpg'
+		self.probfile = 'Pro_MOD02QKM.A2014005.2110.006.2014218155544_band1_90_5000_90_8000.txt'
 
-		self.model = ModisMap(self.inputfile)
+		self.model = ModisMap(self.inputfile, self.probfile)
 		self.path = []
 
 		self.carvas_start_point = None
