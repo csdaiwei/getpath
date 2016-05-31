@@ -127,7 +127,7 @@ class MainWindow:
     def __draw_start_point(self):
 
         if self.e1.get() == '' or self.e2.get() == '':
-            return;
+            return
 
         self.__delete_carvas_item(self.carvas_start_point)  # delete old and draw new
         start_position = (float(self.e1.get()), float(self.e2.get()))
@@ -137,7 +137,7 @@ class MainWindow:
     def __draw_end_point(self):
 
         if self.e3.get() == '' or self.e4.get() == '':
-            return;
+            return
 
         self.__delete_carvas_item(self.carvas_end_point)  # delete old and draw new
         end_position = (float(self.e3.get()), float(self.e4.get()))
@@ -152,9 +152,9 @@ class MainWindow:
 
         for i in range(len(self.path) - 1):
             current_position, next_position = self.path[i], self.path[i + 1]
-            current_y, current_x = current_position[0] * self.imtk.width(), current_position[1] * self.imtk.height()
+            current_x, current_y = current_position[0] * self.imtk.width(), current_position[1] * self.imtk.height()
             # print(current_x,current_y,self.model.prob[current_y-self.model.prob_y_start, current_x-self.model.prob_x_start,2])
-            next_y, next_x = next_position[0] * self.imtk.width(), next_position[1] * self.imtk.height()
+            next_x, next_y = next_position[0] * self.imtk.width(), next_position[1] * self.imtk.height()
             carvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green')
             self.carvas_path.append(carvas_path_point)
         # print('path len:',len(self.path))
@@ -257,16 +257,20 @@ class MainWindow:
         self.model.set_startend_position(start_position, end_position)
         self.model.set_target("time")
         self.model.set_safe_margin(margin)
+        self.path = self.model.getpath()
+        # self.__draw_path()
+        # print(len(self.path))
         try:
             self.path = self.model.getpath()
         except:
             tkMessageBox.showerror('Danger','Unreachable place')
-
+        # finally:
         # self.__draw_path()
-        if self.path == ():
-           tkMessageBox.showerror('Danger','Unreachable place')
+        if len(self.path)==0:
+            tkMessageBox.showerror('Danger','Unreachable place')
         else:
             self.__draw_path()
+            print(len(self.path))
 
 
     # callback of breset
