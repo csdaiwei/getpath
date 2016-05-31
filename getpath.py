@@ -2,22 +2,13 @@
 import cv2
 import pickle
 import numpy as np
+import Parameter as Para
 
 from math import sqrt
 from dijkstra_algorithm import dijkstra
 
 
 class ModisMap:
-
-
-	EXTEND_SEARCH_SIZE = 10    # extend search area within the block of (start_point, end_point)
-	MAX_PASSABLE_COLOR = 70     # points with larger grey value are not passable
-	PATH_EDGE_SIZE = 0          # use mean value of an area to represent color of a point
-	PROB_ENLAGRED_TIMES = 10	# enlarge the probability of a pixel being thin ice/cloud by XXX times
-	PIXEL_RATIO = 0			# the importance of of a pixel's gray level in calculating cost, and that of corresponding pixel's
-								# probability of thin ice/cloud is 1-XXX
-	INF_THRESHOLD = 0.6			# if the pixel's probability of being thick ice/cloud lager than it, then this pixel is infeasible
-
 
 	def __init__(self, inputfile, probfile):		# probfile records the probability of a pixel being sea, cloud or ice
 		s = probfile.split('_')
@@ -77,7 +68,7 @@ class ModisMap:
 		self.is_set = True
 
 
-    # 设置路径的相对起始位置和终止位置
+	# 设置路径的相对起始位置和终止位置
 	def set_startend_position(self, start_position, end_position):
 		#todo: safety check
 		for p in start_position+end_position:
@@ -105,8 +96,8 @@ class ModisMap:
 		self.safe_margin = safe_margin
 		print("safe margin is set to be:"+str(safe_margin))
 		self.risk_region = set([])
-		for xx in range(0, int(self.safe_margin)):
-			for yy in range(0, int(self.safe_margin)):
+		for xx in range(0, int(self.safe_margin)+1):
+			for yy in range(0, int(self.safe_margin)+1):
 				self.risk_region.add((xx, yy))
 				self.risk_region.add((xx, -yy))
 				self.risk_region.add((-xx, yy))
@@ -187,7 +178,7 @@ class ModisMap:
 		:rtype:bool whether (x,y) is feasible
 
 		"""
-		return self.matrix[x][y] < ModisMap.MAX_PASSABLE_COLOR
+		return self.matrix[x][y] < Para.MAX_PASSABLE_COLOR
 
 
 	# 大致初始化一个的可行域
@@ -195,10 +186,10 @@ class ModisMap:
 	def __get_search_area(self):
 		x_search_area = [0, 0]
 		y_search_area = [0, 0]
-		x_search_area[0] = min(self.start_point[0], self.end_point[0]) - ModisMap.EXTEND_SEARCH_SIZE
-		x_search_area[1] = max(self.start_point[0], self.end_point[0]) + ModisMap.EXTEND_SEARCH_SIZE
-		y_search_area[0] = min(self.start_point[1], self.end_point[1]) - ModisMap.EXTEND_SEARCH_SIZE
-		y_search_area[1] = max(self.start_point[1], self.end_point[1]) + ModisMap.EXTEND_SEARCH_SIZE
+		x_search_area[0] = min(self.start_point[0], self.end_point[0]) - Para.EXTEND_SEARCH_SIZE
+		x_search_area[1] = max(self.start_point[0], self.end_point[0]) + Para.EXTEND_SEARCH_SIZE
+		y_search_area[0] = min(self.start_point[1], self.end_point[1]) - Para.EXTEND_SEARCH_SIZE
+		y_search_area[1] = max(self.start_point[1], self.end_point[1]) + Para.EXTEND_SEARCH_SIZE
 		return x_search_area,y_search_area
 
 
@@ -210,14 +201,13 @@ class ModisMap:
 			for y in range(y_search_area[0], y_search_area[1]):
 				# if the pixel is not in the range of probability file
 				if not self.__is_in(x, y):
-					if self.matrix[x][y] > ModisMap.MAX_PASSABLE_COLOR:
+					if self.matrix[x][y] > Para.MAX_PASSABLE_COLOR:
 						self.infeasible_set.add((x, y))
 				else:
 					# if the probability of the pixel being thick ice/cloud larger than INF_THRESHOLD, then we treat this pixel as infeasible
 					curr_pros = self.__get_thick_ice_probability(x,y)
 					# print(x,y,curr_pros)
-					if curr_pros > ModisMap.INF_THRESHOLD:
-
+					if curr_pros > Para.INF_THRESHOLD or self.matrix[x][y] > Para.MAX_PASSABLE_COLOR:
 						current_coor = np.array([x,y])
 						offset = np.array(list(self.risk_region))
 						result = offset + current_coor
@@ -299,13 +289,13 @@ class ModisMap:
 						if not self.__is_in(p1[0], p1[1]):	#out of range
 							p1_cost = self.__get_target_cost(p1[0], p1[1])
 						else:
-							p1_cost = ModisMap.PIXEL_RATIO * self.__get_target_cost(p1[0], p1[1]) + \
-								  	  (1-ModisMap.PIXEL_RATIO) * self.__get_thick_ice_probability_by_point(p1) * ModisMap.PROB_ENLAGRED_TIMES
+							p1_cost = Para.PIXEL_RATIO * self.__get_target_cost(p1[0], p1[1]) + \
+								  	  (1-Para.PIXEL_RATIO) * self.__get_thick_ice_probability_by_point(p1) * Para.PROB_ENLAGRED_TIMES
 						if not self.__is_in(p2[0], p2[1]):
 							p2_cost = self.__get_target_cost(p2[0], p2[1])
 						else:
-							p2_cost = ModisMap.PIXEL_RATIO * self.__get_target_cost(p2[0], p2[1]) + \
-								  	  (1-ModisMap.PIXEL_RATIO) * self.__get_thick_ice_probability_by_point(p2) * ModisMap.PROB_ENLAGRED_TIMES
+							p2_cost = Para.PIXEL_RATIO * self.__get_target_cost(p2[0], p2[1]) + \
+								  	  (1-Para.PIXEL_RATIO) * self.__get_thick_ice_probability_by_point(p2) * Para.PROB_ENLAGRED_TIMES
 						dist = dist_list[index]
 						cost = (p1_cost+p2_cost) * dist
 						self.edges.append((p1_index, p2_index, cost))
