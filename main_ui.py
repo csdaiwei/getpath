@@ -153,11 +153,9 @@ class MainWindow:
         for i in range(len(self.path) - 1):
             current_position, next_position = self.path[i], self.path[i + 1]
             current_x, current_y = current_position[0] * self.imtk.width(), current_position[1] * self.imtk.height()
-            # print(current_x,current_y,self.model.prob[current_y-self.model.prob_y_start, current_x-self.model.prob_x_start,2])
             next_x, next_y = next_position[0] * self.imtk.width(), next_position[1] * self.imtk.height()
             carvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green')
             self.carvas_path.append(carvas_path_point)
-        # print('path len:',len(self.path))
 
 
     def __delete_carvas_item(self, item):
@@ -240,12 +238,12 @@ class MainWindow:
 
         s = self.e5.get()
         # try:
-        #	v = float(s)
-        #	if not 0 <= v <= 5:
-        #		raise Exception()
+        #   v = float(s)
+        #   if not 0 <= v <= 5:
+        #       raise Exception()
         # except :
-        #	tkMessageBox.showerror('Error', '最小间距应在0-5范围内')
-        #	return
+        #   tkMessageBox.showerror('Error', '最小间距应在0-5范围内')
+        #   return
 
         # no input error, continue
 
@@ -258,19 +256,17 @@ class MainWindow:
         self.model.set_target("time")
         self.model.set_safe_margin(margin)
         self.path = self.model.getpath()
-        # self.__draw_path()
         # print(len(self.path))
         try:
             self.path = self.model.getpath()
         except:
-            tkMessageBox.showerror('Danger','Unreachable place')
-        # finally:
-        # self.__draw_path()
-        if len(self.path)==0:
-            tkMessageBox.showerror('Danger','Unreachable place')
+            tkMessageBox.showerror('Danger','Exception in find path')
         else:
-            self.__draw_path()
-            print(len(self.path))
+            if len(self.path)==0:
+                tkMessageBox.showerror('Danger','Unreachable place')
+            else:
+                self.__draw_path()
+                print(len(self.path))
 
 
     # callback of breset
