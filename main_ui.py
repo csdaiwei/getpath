@@ -14,7 +14,7 @@ class MainWindow:
         self.inputfile = 'MOD02QKM.A2014005.2110.006.2014218155544_band1.jpg'
         self.probfile = 'Pro_MOD02QKM.A2014005.2110.006.2014218155544_band1_90_5000_90_8000.txt'
 
-        self.model = ModisMap(self.inputfile, self.probfile)
+        ##self.model = ModisMap(self.inputfile, self.probfile)
         self.path = []
 
         self.carvas_start_point = None
@@ -124,6 +124,8 @@ class MainWindow:
         self.e3.bind('<Key>', self.__end_point_change)
         self.e4.bind('<Key>', self.__end_point_change)
 
+        self.__rescale(0.2)
+
     def __draw_start_point(self):
 
         if self.e1.get() == '' or self.e2.get() == '':
@@ -176,6 +178,8 @@ class MainWindow:
         self.__draw_start_point()
         self.__draw_end_point()
         self.__draw_path()
+
+
 
     # callback functions below
 
@@ -252,10 +256,10 @@ class MainWindow:
         end_position = (float(self.e3.get()), float(self.e4.get()))
         margin = float(self.e5.get())
 
-        self.model.set_startend_position(start_position, end_position)
-        self.model.set_target("time")
-        self.model.set_safe_margin(margin)
-        self.path = self.model.getpath()
+        #self.model.set_startend_position(start_position, end_position)
+        #self.model.set_target("time")
+        #self.model.set_safe_margin(margin)
+        #self.path = self.model.getpath()
         # print(len(self.path))
         try:
             self.path = self.model.getpath()
