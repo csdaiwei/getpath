@@ -4,4 +4,6 @@
 *.jpg
 *.txt
 /.idea
+*.hdf
+*.npy
 .DS_Store
