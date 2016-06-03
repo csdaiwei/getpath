@@ -3,9 +3,11 @@
 import pdb
 import Tkinter as tk
 import tkMessageBox
+
 from Tkinter import *
 from getpath import ModisMap
 from PIL import ImageTk, Image
+from pyhdf.SD import SD, SDC
 
 
 class MainWindow:
@@ -13,11 +15,18 @@ class MainWindow:
         # self.inputfile = 'bright.png'
         self.inputfile = 'MOD02QKM.A2014005.2110.006.2014218155544_band1.jpg'
         self.probfile = 'Pro_MOD02QKM.A2014005.2110.006.2014218155544_band1_90_5000_90_8000.txt'
+        self.hdffile = 'MOD02QKM.A2014005.2110.006.2014218155544.hdf'
+
+        self.longitude_matrix = []
+        self.latitide_matrix = []
+        self.__init_geocoordinates()    #fill in above two matrix
 
         ##self.model = ModisMap(self.inputfile, self.probfile)
+        self.start_position = []
+        self.end_position = []
         self.path = []
 
-        self.carvas_start_point = None
+        self.carvas_start_point = None      #indexing canvas items
         self.carvas_end_point = None
         self.carvas_path = []
         self.click_carvas_to_set_start_point = True
@@ -126,24 +135,47 @@ class MainWindow:
 
         self.__rescale(0.2)
 
+
+    def __init_geocoordinates(self):
+        hdf = SD(self.hdffile, SDC.READ)
+        longtitude_data = hdf.select('Longitude')
+        latitude_data = hdf.select('Latitude')
+        
+        self.longitude_matrix = longtitude_data.get().astype("double")
+        self.latitude_matrix = latitude_data.get().astype("double")
+
+
+    def __position_to_geocoordinates(self, x_position, y_position):
+        assert self.longitude_matrix.shape == self.latitude_matrix.shape
+        
+        x, y = int(y_position * self.longitude_matrix.shape[0]), int(x_position * self.longitude_matrix.shape[1])
+        longitude = self.longitude_matrix[x, y]
+        latitude = self.latitude_matrix[x, y]
+        
+        return (longitude, latitude)
+
+    def __geocoordinates_to_position(self, longitude, latitude):
+        # todo
+        pass
+
+
+
     def __draw_start_point(self):
 
-        if self.e1.get() == '' or self.e2.get() == '':
+        if self.start_position == []:
             return
 
         self.__delete_carvas_item(self.carvas_start_point)  # delete old and draw new
-        start_position = (float(self.e1.get()), float(self.e2.get()))
-        x, y = int(start_position[0] * self.imtk.width()), int(start_position[1] * self.imtk.height())
+        x, y = int(self.start_position[0] * self.imtk.width()), int(self.start_position[1] * self.imtk.height())
         self.carvas_start_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='red')
 
     def __draw_end_point(self):
 
-        if self.e3.get() == '' or self.e4.get() == '':
+        if self.end_position == []:
             return
 
         self.__delete_carvas_item(self.carvas_end_point)  # delete old and draw new
-        end_position = (float(self.e3.get()), float(self.e4.get()))
-        x, y = int(end_position[0] * self.imtk.width()), int(end_position[1] * self.imtk.height())
+        x, y = int(self.end_position[0] * self.imtk.width()), int(self.end_position[1] * self.imtk.height())
         self.carvas_end_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='blue')
 
     def __draw_path(self):
@@ -191,13 +223,13 @@ class MainWindow:
 
     def __start_point_change(self, event):
         try:
-            self.__draw_start_point()
+            self.__draw_start_point()   #todo
         except:
             pass
 
     def __end_point_change(self, event):
         try:
-            self.__draw_end_point()
+            self.__draw_end_point()     #todo 
         except:
             pass
 
@@ -211,31 +243,41 @@ class MainWindow:
         if x_position >= 1 or y_position >= 1:
             return
 
+        longitude, latitude = self.__position_to_geocoordinates(x_position, y_position)
+
         if self.click_carvas_to_set_start_point:
-            self.e1.delete(0, 'end')
-            self.e1.insert(0, x_position)
-            self.e2.delete(0, 'end')
-            self.e2.insert(0, y_position)
+
+            self.start_position = (x_position, y_position)
             self.__draw_start_point()
+
+            self.e1.delete(0, 'end')
+            self.e1.insert(0, str('%0.2f'%longitude))
+            self.e2.delete(0, 'end')
+            self.e2.insert(0, str('%0.2f'%latitude))
         else:
-            self.e3.delete(0, 'end')
-            self.e3.insert(0, x_position)
-            self.e4.delete(0, 'end')
-            self.e4.insert(0, y_position)
+
+            self.end_position = (x_position, y_position)
             self.__draw_end_point()
+
+            self.e3.delete(0, 'end')
+            self.e3.insert(0, str('%0.2f'%longitude))
+            self.e4.delete(0, 'end')
+            self.e4.insert(0, str('%0.2f'%latitude))
+            
 
     # callback of bgen
     def __genpath(self):
 
         # input check
-        for i in range(0, 3):
+        for i in range(0, 4):
             entries = [self.e1, self.e2, self.e3, self.e4]
             names = ['起点经度', '起点纬度', '终点经度', '终点纬度', '最小间距']
             s = entries[i].get()
             try:
                 v = float(s)
                 if not 0 < v < 1:
-                    raise Exception()
+                    pass
+                    #raise Exception()  #todo
             except:
                 tkMessageBox.showerror('Error', names[i] + '输入错误')
                 return
@@ -252,8 +294,10 @@ class MainWindow:
         # no input error, continue
 
         # read input data
-        start_position = (float(self.e1.get()), float(self.e2.get()))
-        end_position = (float(self.e3.get()), float(self.e4.get()))
+        #start_position = (float(self.e1.get()), float(self.e2.get()))
+        #end_position = (float(self.e3.get()), float(self.e4.get()))
+        start_position = self.start_position
+        end_position = self.end_position
         margin = float(self.e5.get())
 
         #self.model.set_startend_position(start_position, end_position)
@@ -280,6 +324,9 @@ class MainWindow:
         for e in [self.e1, self.e2, self.e3, self.e4, self.e5]:
             e.delete(0, 'end')
         self.e5.insert(0, "1")
+
+        self.start_position = []
+        self.end_position = []
 
         # clear canvas
         self.canvas.delete("all")
