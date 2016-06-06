@@ -3,6 +3,7 @@
 import pdb
 import Tkinter as tk
 import tkMessageBox
+import numpy as np
 
 from Tkinter import *
 from getpath import ModisMap
@@ -21,7 +22,7 @@ class MainWindow:
         self.latitide_matrix = []
         self.__init_geocoordinates()    #fill in above two matrix
 
-        ##self.model = ModisMap(self.inputfile, self.probfile)
+        #self.model = ModisMap(self.inputfile, self.probfile)
         self.start_position = []
         self.end_position = []
         self.path = []
@@ -29,6 +30,8 @@ class MainWindow:
         self.carvas_start_point = None      #indexing canvas items
         self.carvas_end_point = None
         self.carvas_path = []
+        self.canvas_geogrids = []
+        self.show_geogrids = False
         self.click_carvas_to_set_start_point = True
 
         self.scale_level = [0.05, 0.1, 0.2, 0.5, 0.75, 1.0, 1.5, 2]
@@ -69,7 +72,7 @@ class MainWindow:
         b1.select()
         b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", value=2, command=self.__set_end_point_click)
         b3 = tk.Button(frame_left_bottom, text='更换modis图像')
-        b4 = tk.Button(frame_left_bottom, text='显示risk图片')
+        b4 = tk.Button(frame_left_bottom, text='显示/隐藏经纬网', command=self.__showhide_geogrids)
         self.b5 = tk.Button(frame_left_bottom, text='-', width=2, command=self.__zoomout)
         self.b6 = tk.Button(frame_left_bottom, text='+', width=2, command=self.__zoomin)
         b1.grid(row=0, column=0)
@@ -146,7 +149,6 @@ class MainWindow:
         self.longitude_matrix = longtitude_data.get().astype("double")
         self.latitude_matrix = latitude_data.get().astype("double")
 
-        self.__geocoordinates_range()
 
 
     def __position_to_geocoordinates(self, x_position, y_position):
@@ -163,10 +165,58 @@ class MainWindow:
         pass
 
 
-    def __geocoordinates_range(self):
+    def __draw_geogrid(self):
+
+        if self.canvas_geogrids != []:
+            for g in self.canvas_geogrids:
+                self.__delete_carvas_item(g)
+            self.canvas_geogrids = []
+
         lon_mat = self.longitude_matrix
         lat_mat = self.latitude_matrix
 
+        xlen, ylen = lat_mat.shape  #2030 1354
+        s = self.current_scale
+
+        #todo : generate v from range of lon_mat/lat_mat
+
+        # draw latitude lines
+        for v in [-60, -65, -70, -75]:
+            line_points = []
+            for y in range(0, ylen):
+                if y%10 != 0:
+                    continue
+                lat = lat_mat[:, y]
+                x = np.fabs(lat - v).argmin()
+                if x > 0 and x < xlen-1:
+                    line_points.append((4*x, 4*y)) #8120 5416
+
+            for i in range(0, len(line_points)-1):
+                cx, cy = line_points[i]
+                nx, ny = line_points[i+1]
+                g = self.canvas.create_line(s*cy, s*cx, s*ny, s*nx, fill='yellow', width=1.5)  # x y different between matrix and canvas
+                self.canvas_geogrids.append(g)
+
+
+        # draw longitude lines
+        for v in [140, 150, 160, 170, 180, -170, -160, -150]:
+            line_points = []
+            for x in range(0, xlen):
+                if x%10 != 0:
+                    continue
+                lon = lon_mat[x, :]
+                y = np.fabs(lon - v).argmin()
+                if y > 0 and y < ylen-1:
+                    line_points.append((4*x, 4*y)) #8120 5416
+
+            for i in range(0, len(line_points)-1):
+                cx, cy = line_points[i]
+                nx, ny = line_points[i+1]
+                g = self.canvas.create_line(s*cy, s*cx, s*ny, s*nx, fill='yellow', width=1.5)  # x y different between matrix and canvas
+                self.canvas_geogrids.append(g)
+
+        #self.show_geogrids = True
+        
 
     def __draw_start_point(self):
 
@@ -218,6 +268,8 @@ class MainWindow:
         self.__draw_start_point()
         self.__draw_end_point()
         self.__draw_path()
+        if self.show_geogrids:
+            self.__draw_geogrid()
 
 
 
@@ -363,6 +415,18 @@ class MainWindow:
             self.b6.config(state='disabled')
         if index == 0:
             self.b5.config(state='normal')
+
+    def __showhide_geogrids(self):
+        if self.show_geogrids:
+            #hide
+            for g in self.canvas_geogrids:
+                self.__delete_carvas_item(g)
+            self.canvas_geogrids = []
+            self.show_geogrids = False
+        else:
+            #show
+            self.__draw_geogrid()
+            self.show_geogrids = True
 
 
 if __name__ == '__main__':
