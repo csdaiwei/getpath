@@ -49,7 +49,6 @@ class MainWindow:
         # build frame left top
         self.canvas = tk.Canvas(frame_left_top, width=800, height=800)
         self.canvas.create_image(0, 0, image=self.imtk, anchor='nw')
-        self.canvas.bind("<Button-1>", self.__canvas_click)
 
         xbar = tk.Scrollbar(frame_left_top, orient=HORIZONTAL)
         xbar.config(command=self.canvas.xview)
@@ -128,6 +127,9 @@ class MainWindow:
         bgen.grid(row=7, column=0, columnspan=2, pady=20)
         breset.grid(row=8, column=0, columnspan=2, pady=20)
 
+        
+        # callback bindings
+        self.canvas.bind("<Button-1>", self.__canvas_click)
         self.e1.bind('<Key>', self.__start_point_change)
         self.e2.bind('<Key>', self.__start_point_change)
         self.e3.bind('<Key>', self.__end_point_change)
@@ -144,6 +146,8 @@ class MainWindow:
         self.longitude_matrix = longtitude_data.get().astype("double")
         self.latitude_matrix = latitude_data.get().astype("double")
 
+        self.__geocoordinates_range()
+
 
     def __position_to_geocoordinates(self, x_position, y_position):
         assert self.longitude_matrix.shape == self.latitude_matrix.shape
@@ -157,6 +161,12 @@ class MainWindow:
     def __geocoordinates_to_position(self, longitude, latitude):
         # todo
         pass
+
+
+    def __geocoordinates_range(self):
+        lon_mat = self.longitude_matrix
+        lat_mat = self.latitude_matrix
+        pdb.set_trace()
 
 
 

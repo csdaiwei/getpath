@@ -6,4 +6,6 @@
 /.idea
 *.hdf
 *.npy
+*.tif
+*.tiff
 .DS_Store
