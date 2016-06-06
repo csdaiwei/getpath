@@ -18,21 +18,21 @@ class MainWindow:
         self.probfile = 'Pro_MOD02QKM.A2014005.2110.006.2014218155544_band1_90_5000_90_8000.txt'
         self.hdffile = 'MOD02QKM.A2014005.2110.006.2014218155544.hdf'
 
-        self.longitude_matrix = []
-        self.latitide_matrix = []
-        self.__init_geocoordinates()    #fill in above two matrix
+        hdf = SD(self.hdffile, SDC.READ)
+        self.longitude_matrix = hdf.select('Longitude').get().astype("double")
+        self.latitude_matrix = hdf.select('Latitude').get().astype("double")
 
         #self.model = ModisMap(self.inputfile, self.probfile)
         self.start_position = []
         self.end_position = []
         self.path = []
 
-        self.carvas_start_point = None      #indexing canvas items
-        self.carvas_end_point = None
-        self.carvas_path = []
+        self.canvas_start_point = None      #indexing canvas items
+        self.canvas_end_point = None
+        self.canvas_path = []
         self.canvas_geogrids = []
         self.show_geogrids = False
-        self.click_carvas_to_set_start_point = True
+        self.click_canvas_to_set_start_point = True
 
         self.scale_level = [0.05, 0.1, 0.2, 0.5, 0.75, 1.0, 1.5, 2]
         self.current_scale = 1.0
@@ -141,35 +141,56 @@ class MainWindow:
         self.__rescale(0.2)
 
 
-    def __init_geocoordinates(self):
-        hdf = SD(self.hdffile, SDC.READ)
-        longtitude_data = hdf.select('Longitude')
-        latitude_data = hdf.select('Latitude')
-        
-        self.longitude_matrix = longtitude_data.get().astype("double")
-        self.latitude_matrix = latitude_data.get().astype("double")
-
-
 
     def __position_to_geocoordinates(self, x_position, y_position):
         assert self.longitude_matrix.shape == self.latitude_matrix.shape
+        xlen, ylen = self.longitude_matrix.shape  #2030 1354
         
-        x, y = int(y_position * self.longitude_matrix.shape[0]), int(x_position * self.longitude_matrix.shape[1])
+        x, y = int(y_position * xlen), int(x_position * ylen)
         longitude = self.longitude_matrix[x, y]
         latitude = self.latitude_matrix[x, y]
         
         return (longitude, latitude)
 
     def __geocoordinates_to_position(self, longitude, latitude):
-        # todo
-        pass
+        assert self.longitude_matrix.shape == self.latitude_matrix.shape
+
+        lon_mat = self.longitude_matrix
+        lat_mat = self.latitude_matrix
+        xlen, ylen = lat_mat.shape  #2030 1354
+        
+        vset = set([])
+        for x in range(1, xlen-1):
+            lon = lon_mat[x, :]
+            y = np.fabs(lon - longitude).argmin()
+            if (lon - longitude)[y] < 0.01:
+                vset.add((x, y))
+        
+        if len(vset) == 0:
+            # not found, raise error
+            print 'longitude not found, vset 0'
+            return   #todo
+
+        vlist = list(vset)
+        lat = np.array([lat_mat[v[0], v[1]] for v in vlist])
+        t = np.fabs(lat - latitude).argmin()
+        
+        if (lat - latitude)[t] > 0.01:
+            #not found , raise error
+            print 'latitude not found'
+            return #todo
+
+        x, y = vlist[t]
+        x_position, y_position = float(y)/ylen, float(x)/xlen
+        
+        return x_position, y_position
 
 
     def __draw_geogrid(self):
 
         if self.canvas_geogrids != []:
             for g in self.canvas_geogrids:
-                self.__delete_carvas_item(g)
+                self.__delete_canvas_item(g)
             self.canvas_geogrids = []
 
         lon_mat = self.longitude_matrix
@@ -223,34 +244,34 @@ class MainWindow:
         if self.start_position == []:
             return
 
-        self.__delete_carvas_item(self.carvas_start_point)  # delete old and draw new
+        self.__delete_canvas_item(self.canvas_start_point)  # delete old and draw new
         x, y = int(self.start_position[0] * self.imtk.width()), int(self.start_position[1] * self.imtk.height())
-        self.carvas_start_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='red')
+        self.canvas_start_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='red')
 
     def __draw_end_point(self):
 
         if self.end_position == []:
             return
 
-        self.__delete_carvas_item(self.carvas_end_point)  # delete old and draw new
+        self.__delete_canvas_item(self.canvas_end_point)  # delete old and draw new
         x, y = int(self.end_position[0] * self.imtk.width()), int(self.end_position[1] * self.imtk.height())
-        self.carvas_end_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='blue')
+        self.canvas_end_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='blue')
 
     def __draw_path(self):
 
-        for carvas_path_point in self.carvas_path:
-            self.__delete_carvas_item(carvas_path_point)
-        self.carvas_path = []
+        for canvas_path_point in self.canvas_path:
+            self.__delete_canvas_item(canvas_path_point)
+        self.canvas_path = []
 
         for i in range(len(self.path) - 1):
             current_position, next_position = self.path[i], self.path[i + 1]
             current_x, current_y = current_position[0] * self.imtk.width(), current_position[1] * self.imtk.height()
             next_x, next_y = next_position[0] * self.imtk.width(), next_position[1] * self.imtk.height()
-            carvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green')
-            self.carvas_path.append(carvas_path_point)
+            canvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green')
+            self.canvas_path.append(canvas_path_point)
 
 
-    def __delete_carvas_item(self, item):
+    def __delete_canvas_item(self, item):
         if item is not None:
             self.canvas.delete(item)
 
@@ -276,22 +297,30 @@ class MainWindow:
     # callback functions below
 
     def __set_start_point_click(self):
-        self.click_carvas_to_set_start_point = True
+        self.click_canvas_to_set_start_point = True
 
     def __set_end_point_click(self):
-        self.click_carvas_to_set_start_point = False
+        self.click_canvas_to_set_start_point = False
 
     def __start_point_change(self, event):
         try:
-            self.__draw_start_point()   #todo
+            longitude, latitude = float(self.e1.get()), float(self.e2.get())
+            x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
         except:
             pass
+        else:
+            self.start_position = (x_position, y_position)
+            self.__draw_start_point()
 
     def __end_point_change(self, event):
         try:
-            self.__draw_end_point()     #todo 
+            longitude, latitude = float(self.e3.get()), float(self.e4.get())
+            x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
         except:
             pass
+        else:
+            self.end_position = (x_position, y_position)
+            self.__draw_end_point()
 
     # canvas click event
     def __canvas_click(self, event):
@@ -305,7 +334,7 @@ class MainWindow:
 
         longitude, latitude = self.__position_to_geocoordinates(x_position, y_position)
 
-        if self.click_carvas_to_set_start_point:
+        if self.click_canvas_to_set_start_point:
 
             self.start_position = (x_position, y_position)
             self.__draw_start_point()
@@ -420,7 +449,7 @@ class MainWindow:
         if self.show_geogrids:
             #hide
             for g in self.canvas_geogrids:
-                self.__delete_carvas_item(g)
+                self.__delete_canvas_item(g)
             self.canvas_geogrids = []
             self.show_geogrids = False
         else:

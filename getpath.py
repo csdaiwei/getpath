@@ -1,5 +1,5 @@
 #encoding:utf-8
-import cv2
+import cv2      #todo: use PIL instead of cv2
 import pickle
 import numpy as np
 import Parameter as Para
