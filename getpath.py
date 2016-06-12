@@ -205,7 +205,7 @@ class ModisMap:
                         self.infeasible_set.add((x, y))
                 else:
                     # if the probability of the pixel being thick ice/cloud larger than INF_THRESHOLD, then we treat this pixel as infeasible
-                    curr_pros = self.__get_thick_ice_probability(x,y)
+                    curr_pros = self.get_thick_ice_probability(x,y)
                     # print(x,y,curr_pros)
                     if curr_pros > Para.INF_THRESHOLD or self.matrix[x][y] > Para.MAX_PASSABLE_COLOR:
                         current_coor = np.array([x,y])
@@ -247,22 +247,28 @@ class ModisMap:
     def __fuel_cost(self,x,y):
         v = self.matrix[x][y]
         return v**3+1
-    def __get_sea_probability(self,x,y):
+
+    def get_sea_probability(self,x,y):
         return self.prob[x-self.prob_x_start, y-self.prob_y_start, 0]
-    def __get_thin_ice_probability(self,x,y):
+
+    def get_thin_ice_probability(self,x,y):
         return self.prob[x-self.prob_x_start, y-self.prob_y_start, 1]
-    def __get_thick_ice_probability(self,x,y):
+
+    def get_thick_ice_probability(self,x,y):
         return self.prob[x-self.prob_x_start, y-self.prob_y_start, 2]
 
     def __get_probability_by_point(self,point,index):
         return self.prob[point[0]-self.prob_x_start, point[1]-self.prob_y_start, index]
 
-    def __get_sea_probability_by_point(self,point):
+    def get_sea_probability_by_point(self,point):
         return self.__get_probability_by_point(point,0)
-    def __get_thin_ice_probability_by_point(self,point):
+
+    def get_thin_ice_probability_by_point(self,point):
         return self.__get_probability_by_point(point,1)
-    def __get_thick_ice_probability_by_point(self,point):
+
+    def get_thick_ice_probability_by_point(self,point):
         return self.__get_probability_by_point(point,2)
+
     # 初始化边集
     def __init_edge_cost(self):
         """
@@ -290,12 +296,12 @@ class ModisMap:
                             p1_cost = self.__get_target_cost(p1[0], p1[1])
                         else:
                             p1_cost = Para.PIXEL_RATIO * self.__get_target_cost(p1[0], p1[1]) + \
-                                      (1-Para.PIXEL_RATIO) * self.__get_thick_ice_probability_by_point(p1) * Para.PROB_ENLAGRED_TIMES
+                                      (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p1) * Para.PROB_ENLAGRED_TIMES
                         if not self.__is_in(p2[0], p2[1]):
                             p2_cost = self.__get_target_cost(p2[0], p2[1])
                         else:
                             p2_cost = Para.PIXEL_RATIO * self.__get_target_cost(p2[0], p2[1]) + \
-                                      (1-Para.PIXEL_RATIO) * self.__get_thick_ice_probability_by_point(p2) * Para.PROB_ENLAGRED_TIMES
+                                      (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p2) * Para.PROB_ENLAGRED_TIMES
                         dist = dist_list[index]
                         cost = (p1_cost+p2_cost) * dist
                         self.edges.append((p1_index, p2_index, cost))

@@ -9,6 +9,7 @@ from Tkinter import *
 from getpath import ModisMap
 from PIL import ImageTk, Image
 from pyhdf.SD import SD, SDC
+import Parameter as Para
 
 
 class MainWindow:
@@ -21,14 +22,28 @@ class MainWindow:
         hdf = SD(self.hdffile, SDC.READ)
         self.longitude_matrix = hdf.select('Longitude').get().astype("double")
         self.latitude_matrix = hdf.select('Latitude').get().astype("double")
+        # max_longitude = np.array(self.longitude_matrix).max()
+        # min_longitude = np.array(self.longitude_matrix).min()
+        # max_latitude = np.array(self.latitude_matrix).max()
+        # min_latitude = np.array(self.latitude_matrix).min()
+        # self.max_longitude = max_longitude if np.fabs(max_longitude - 180) > Para.DIFF else 180
+        # self.min_longitude = min_longitude if np.fabs(min_longitude - (-180)) > Para.DIFF else -180
+        # self.max_latitude = max_latitude if np.fabs(max_latitude - 90) > Para.DIFF else 90
+        # self.min_latitude = min_latitude if np.fabs(min_latitude - (-90)) > Para.DIFF else -90
+        # print(self.max_longitude)
+        # print(self.min_longitude)
+        # print(self.max_latitude)
+        # print(self.min_latitude)
 
-        #self.model = ModisMap(self.inputfile, self.probfile)
+        self.model = ModisMap(self.inputfile, self.probfile)
         self.start_position = []
         self.end_position = []
+        self.ask_position = []
         self.path = []
 
         self.canvas_start_point = None      #indexing canvas items
         self.canvas_end_point = None
+        self.canvas_ask_point = None
         self.canvas_path = []
         self.canvas_geogrids = []
         self.show_geogrids = False
@@ -42,16 +57,23 @@ class MainWindow:
 
         # start to build ui elements
         # first of all, build main framework containing 3 frames
-        frame_left_top = tk.Frame(master, width=800, height=800)
-        frame_left_bottom = tk.Frame(master, width=800, height=60)
-        frame_right = tk.Frame(master, width=200, height=850)
+        # frame_left_top = tk.Frame(master, width=800, height=800)
+        # frame_left_bottom = tk.Frame(master, width=800, height=60)
+        # frame_right = tk.Frame(master, width=200, height=850)
+        frame_left_top = tk.Frame(master, width=900, height=900)
+        frame_left_bottom = tk.Frame(master, width=900, height=60)
+        frame_right = tk.Frame(master, width=200, height=950)
         frame_left_top.grid(row=0, column=0, padx=2, pady=2)
         frame_left_bottom.grid(row=1, column=0, padx=2, pady=2)
         frame_right.grid(row=0, column=1, rowspan=2, padx=2, pady=2)
 
         # build frame left top
-        self.canvas = tk.Canvas(frame_left_top, width=800, height=800)
+        # self.canvas = tk.Canvas(frame_left_top, width=800, height=800)
+        self.canvas = tk.Canvas(frame_left_top, width=900, height=900)
         self.canvas.create_image(0, 0, image=self.imtk, anchor='nw')
+
+        self.rec = None
+        self.text = None
 
         xbar = tk.Scrollbar(frame_left_top, orient=HORIZONTAL)
         xbar.config(command=self.canvas.xview)
@@ -97,24 +119,33 @@ class MainWindow:
         l4 = tk.Label(frame_right, text='终点纬度')
         l5 = tk.Label(frame_right, text='最小间距')
         l6 = tk.Label(frame_right, text='优化目标')
+        l7 = tk.Label(frame_right, text='查询经度')
+        l8 = tk.Label(frame_right, text='查询纬度')
         l1.grid(row=0, column=0, pady=20)
         l2.grid(row=1, column=0, pady=20)
         l3.grid(row=2, column=0, pady=20)
         l4.grid(row=3, column=0, pady=20)
         l5.grid(row=4, column=0, pady=20)
         l6.grid(row=5, column=0, pady=20)
+        l7.grid(row=8, column=0, pady=20)
+        l8.grid(row=9, column=0, pady=20)
 
         self.e1 = tk.Entry(frame_right, width=10)
         self.e2 = tk.Entry(frame_right, width=10)
         self.e3 = tk.Entry(frame_right, width=10)
         self.e4 = tk.Entry(frame_right, width=10)
         self.e5 = tk.Entry(frame_right, width=10)
+        self.e6 = tk.Entry(frame_right, width=10)
+        self.e7 = tk.Entry(frame_right, width=10)
         self.e1.grid(row=0, column=1)
         self.e2.grid(row=1, column=1)
         self.e3.grid(row=2, column=1)
         self.e4.grid(row=3, column=1)
         self.e5.grid(row=4, column=1)
         self.e5.insert(0, "1")
+        self.e6.grid(row=8, column=1)
+        self.e7.grid(row=9, column=1)
+
 
         option_list = ['时间', '油耗', '路程']
         v = tk.StringVar(frame_right, option_list[0])
@@ -122,21 +153,26 @@ class MainWindow:
         om.config(width=9)
         om.grid(row=5, column=1)
 
-        blank = tk.Label(frame_right, height=8)
-        blank.grid(row=6)
+        blank = tk.Label(frame_right, height=12)
+        blank.grid(row=12)
 
         bgen = tk.Button(frame_right, command=self.__genpath, text='生成路径')
+        bask = tk.Button(frame_right, command=self.__get_prob, text='查询')
         breset = tk.Button(frame_right, command=self.__reset, text='复位')
-        bgen.grid(row=7, column=0, columnspan=2, pady=20)
-        breset.grid(row=8, column=0, columnspan=2, pady=20)
+        bgen.grid(row=6, column=0, columnspan=2, pady=20)
+        bask.grid(row=10, column=0, columnspan=2, pady=20)
+        breset.grid(row=12, column=0, columnspan=2, pady=20)
 
         
         # callback bindings
         self.canvas.bind("<Button-1>", self.__canvas_click)
-        self.e1.bind('<Key>', self.__start_point_change)
-        self.e2.bind('<Key>', self.__start_point_change)
-        self.e3.bind('<Key>', self.__end_point_change)
-        self.e4.bind('<Key>', self.__end_point_change)
+        self.canvas.bind("<Button-3>", self.__right_canvas_click)
+        self.e1.bind('<Tab>' or '<Enter>', self.__start_point_change)
+        self.e2.bind('<Tab>' or '<Enter>', self.__start_point_change)
+        self.e3.bind('<Tab>' or '<Enter>', self.__end_point_change)
+        self.e4.bind('<Tab>' or '<Enter>', self.__end_point_change)
+        self.e6.bind('<Tab>' or '<Enter>', self.__ask_point_change)
+        self.e7.bind('<Tab>' or '<Enter>', self.__ask_point_change)
 
         self.__rescale(0.2)
 
@@ -158,27 +194,33 @@ class MainWindow:
         lon_mat = self.longitude_matrix
         lat_mat = self.latitude_matrix
         xlen, ylen = lat_mat.shape  #2030 1354
+        # print(max(lon_mat))
+        # print(min(lon_mat))
+        # print(max(lat_mat))
+        # print(min(lat_mat))
         
         vset = set([])
         for x in range(1, xlen-1):
             lon = lon_mat[x, :]
             y = np.fabs(lon - longitude).argmin()
-            if (lon - longitude)[y] < 0.01:
+            if (lon - longitude)[y] < Para.DIFF:
                 vset.add((x, y))
         
         if len(vset) == 0:
             # not found, raise error
             print 'longitude not found, vset 0'
-            return   #todo
+            raise ValueError('longitude not found, vset 0')
+            # return   #todo
 
         vlist = list(vset)
         lat = np.array([lat_mat[v[0], v[1]] for v in vlist])
         t = np.fabs(lat - latitude).argmin()
         
-        if (lat - latitude)[t] > 0.01:
+        if (lat - latitude)[t] > Para.DIFF:
             #not found , raise error
             print 'latitude not found'
-            return #todo
+            raise ValueError('longitude not found, vset 0')
+            # return #todo
 
         x, y = vlist[t]
         x_position, y_position = float(y)/ylen, float(x)/xlen
@@ -257,6 +299,16 @@ class MainWindow:
         x, y = int(self.end_position[0] * self.imtk.width()), int(self.end_position[1] * self.imtk.height())
         self.canvas_end_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='blue')
 
+    def __draw_ask_point(self):
+
+        if self.ask_position == []:
+            return
+
+        self.__delete_canvas_item(self.canvas_ask_point)  # delete old and draw new
+        x, y = int(self.ask_position[0] * self.imtk.width()), int(self.ask_position[1] * self.imtk.height())
+        self.canvas_ask_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='yellow')
+
+
     def __draw_path(self):
 
         for canvas_path_point in self.canvas_path:
@@ -304,9 +356,31 @@ class MainWindow:
 
     def __start_point_change(self, event):
         try:
-            longitude, latitude = float(self.e1.get()), float(self.e2.get())
+            longitude = float(self.e1.get())
+            # if longitude > self.max_longitude or longitude < self.min_longitude:
+            #     tkMessageBox.showerror('Wrong','Out of range!')
+            #     pass
+        except:
+            if self.e1.get() != "":
+                tkMessageBox.showerror('Wrong','Invalid Input!')
+            pass
+        try:
+            latitude = float(self.e2.get())
+            # if latitude > self.max_latitude or latitude < self.min_latitude:
+            #     tkMessageBox.showerror('Wrong','Out of range!')
+            #     pass
+        except:
+            if self.e2.get() != "":
+                tkMessageBox.showerror('Wrong','Invalid Input!')
+            pass
+        # else:
+        #     x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
+        #     self.start_position = (x_position, y_position)
+        #     self.__draw_start_point()
+        try:
             x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
         except:
+            tkMessageBox.showerror('Wrong','Out of range!')
             pass
         else:
             self.start_position = (x_position, y_position)
@@ -314,13 +388,73 @@ class MainWindow:
 
     def __end_point_change(self, event):
         try:
-            longitude, latitude = float(self.e3.get()), float(self.e4.get())
+            longitude = float(self.e3.get())
+        except:
+            if self.e3.get() != "":
+                tkMessageBox.showerror('Wrong','Invalid Input!')
+            pass
+        try:
+            latitude = float(self.e4.get())
+        except:
+            if self.e4.get() != "":
+                tkMessageBox.showerror('Wrong','Invalid Input!')
+            pass
+        try:
             x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
         except:
+            tkMessageBox.showerror('Wrong','Out of range!')
             pass
         else:
             self.end_position = (x_position, y_position)
             self.__draw_end_point()
+
+    def __ask_point_change(self, event):
+        try:
+            longitude = float(self.e6.get())
+        except:
+            if self.e6.get() != "":
+                tkMessageBox.showerror('Wrong','Invalid Input!')
+            pass
+        try:
+            latitude = float(self.e7.get())
+        except:
+            if self.e7.get() != "":
+                tkMessageBox.showerror('Wrong','Invalid Input!')
+            pass
+        try:
+            x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
+        except:
+            tkMessageBox.showerror('Wrong','Out of range!')
+            pass
+        else:
+            self.ask_position = (x_position, y_position)
+            self.__draw_ask_point()
+
+    def __show_prob(self, x_cor, y_cor, x_position):
+        prob_cotent = 'sea: ' + str(self.model.get_sea_probability(x_cor, y_cor)) + '\n' + \
+            'thin ice/cloud: ' + str(self.model.get_thin_ice_probability(x_cor, y_cor)) + '\n' + \
+            'thick ice/cloud: ' + str(self.model.get_thick_ice_probability(x_cor, y_cor))
+
+        if x_position < 0.5:
+            self.__delete_canvas_item(self.rec)
+            self.__delete_canvas_item(self.text)
+            self.rec = self.canvas.create_rectangle(600, 0, 900, 60, outline="white", fill="white")
+            self.text = self.canvas.create_text(600, 30, anchor=W, font="Purisa", text=prob_cotent)
+        else:
+            self.__delete_canvas_item(self.rec)
+            self.__delete_canvas_item(self.text)
+            self.rec = self.canvas.create_rectangle(5, 0, 305, 60, outline="white", fill="white")
+            self.text = self.canvas.create_text(5, 30, anchor=W, font="Purisa", text=prob_cotent)
+
+        print('sea: ', self.model.get_sea_probability(x_cor, y_cor))
+        print('thin ice: ', self.model.get_thin_ice_probability(x_cor, y_cor))
+        print('thick ice: ', self.model.get_thick_ice_probability(x_cor, y_cor))
+
+    def __get_prob(self):
+        x_cor = self.ask_position[1] * self.model.w
+        y_cor = self.ask_position[0] * self.model.h
+
+        self.__show_prob(x_cor, y_cor, self.ask_position[0])
 
     # canvas click event
     def __canvas_click(self, event):
@@ -344,7 +478,6 @@ class MainWindow:
             self.e2.delete(0, 'end')
             self.e2.insert(0, str('%0.2f'%latitude))
         else:
-
             self.end_position = (x_position, y_position)
             self.__draw_end_point()
 
@@ -353,6 +486,30 @@ class MainWindow:
             self.e4.delete(0, 'end')
             self.e4.insert(0, str('%0.2f'%latitude))
             
+    def __right_canvas_click(self, event):
+        x, y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+
+        x_position = float(x) / self.imtk.width()
+        y_position = float(y) / self.imtk.height()
+
+        if x_position >= 1 or y_position >= 1:
+            return
+
+        self.ask_position = (x_position, y_position)
+
+        longitude, latitude = self.__position_to_geocoordinates(x_position, y_position)
+
+        self.__draw_ask_point()
+
+        self.e6.delete(0, 'end')
+        self.e6.insert(0, str('%0.2f'%longitude))
+        self.e7.delete(0, 'end')
+        self.e7.insert(0, str('%0.2f'%latitude))
+
+        x_cor = y_position * self.model.w
+        y_cor = x_position * self.model.h
+
+        self.__show_prob(x_cor, y_cor, x_position)
 
     # callback of bgen
     def __genpath(self):
@@ -389,11 +546,11 @@ class MainWindow:
         end_position = self.end_position
         margin = float(self.e5.get())
 
-        #self.model.set_startend_position(start_position, end_position)
-        #self.model.set_target("time")
-        #self.model.set_safe_margin(margin)
-        #self.path = self.model.getpath()
-        # print(len(self.path))
+        self.model.set_startend_position(start_position, end_position)
+        self.model.set_target("time")
+        self.model.set_safe_margin(margin)
+        self.path = self.model.getpath()
+        print(len(self.path))
         try:
             self.path = self.model.getpath()
         except:

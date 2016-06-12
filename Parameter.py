@@ -5,3 +5,5 @@ PROB_ENLAGRED_TIMES = 10    # enlarge the probability of a pixel being thin ice/
 PIXEL_RATIO = 0             # the importance of of a pixel's gray level in calculating cost, and that of corresponding pixel's
                             # probability of thin ice/cloud is 1-XXX
 INF_THRESHOLD = 0.6         # if the pixel's probability of being thick ice/cloud lager than it, then this pixel is infeasible
+
+DIFF = 0.01                 # the accepted difference range between longitude and latitude
