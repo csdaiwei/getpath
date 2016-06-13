@@ -93,7 +93,7 @@ class MainWindow:
         b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", value=1, command=self.__set_start_point_click)
         b1.select()
         b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", value=2, command=self.__set_end_point_click)
-        b3 = tk.Button(frame_left_bottom, text='更换modis图像')
+        b3 = tk.Button(frame_left_bottom, text='更换modis图像', command=self.__open_filefolder)
         b4 = tk.Button(frame_left_bottom, text='显示/隐藏经纬网', command=self.__showhide_geogrids)
         self.b5 = tk.Button(frame_left_bottom, text='-', width=2, command=self.__zoomout)
         self.b6 = tk.Button(frame_left_bottom, text='+', width=2, command=self.__zoomin)
@@ -306,7 +306,7 @@ class MainWindow:
 
         self.__delete_canvas_item(self.canvas_ask_point)  # delete old and draw new
         x, y = int(self.ask_position[0] * self.imtk.width()), int(self.ask_position[1] * self.imtk.height())
-        self.canvas_ask_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='yellow')
+        self.canvas_ask_point = self.canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='green')
 
 
     def __draw_path(self):
@@ -431,20 +431,26 @@ class MainWindow:
             self.__draw_ask_point()
 
     def __show_prob(self, x_cor, y_cor, x_position):
-        prob_cotent = 'sea: ' + str(self.model.get_sea_probability(x_cor, y_cor)) + '\n' + \
-            'thin ice/cloud: ' + str(self.model.get_thin_ice_probability(x_cor, y_cor)) + '\n' + \
-            'thick ice/cloud: ' + str(self.model.get_thick_ice_probability(x_cor, y_cor))
+        prob_cotent = 'sea: ' + "{:.3f}".format(self.model.get_sea_probability(x_cor, y_cor)) + '\n' + \
+            'thin ice/cloud: ' + "{:.3f}".format(self.model.get_thin_ice_probability(x_cor, y_cor)) + '\n' + \
+            'thick ice/cloud: ' + "{:.3f}".format(self.model.get_thick_ice_probability(x_cor, y_cor))
 
-        if x_position < 0.5:
-            self.__delete_canvas_item(self.rec)
-            self.__delete_canvas_item(self.text)
-            self.rec = self.canvas.create_rectangle(600, 0, 900, 60, outline="white", fill="white")
-            self.text = self.canvas.create_text(600, 30, anchor=W, font="Purisa", text=prob_cotent)
-        else:
-            self.__delete_canvas_item(self.rec)
-            self.__delete_canvas_item(self.text)
-            self.rec = self.canvas.create_rectangle(5, 0, 305, 60, outline="white", fill="white")
-            self.text = self.canvas.create_text(5, 30, anchor=W, font="Purisa", text=prob_cotent)
+        # if x_position < 0.5:
+        #     self.__delete_canvas_item(self.rec)
+        #     self.__delete_canvas_item(self.text)
+        #     self.rec = self.canvas.create_rectangle(600, 0, 900, 60, outline="white", fill="white")
+        #     self.text = self.canvas.create_text(600, 30, anchor=W, font="Purisa", text=prob_cotent)
+        # else:
+        #     self.__delete_canvas_item(self.rec)
+        #     self.__delete_canvas_item(self.text)
+        #     self.rec = self.canvas.create_rectangle(5, 0, 305, 60, outline="white", fill="white")
+        #     self.text = self.canvas.create_text(5, 30, anchor=W, font="Purisa", text=prob_cotent)
+        self.__delete_canvas_item(self.rec)
+        self.__delete_canvas_item(self.text)
+        x = self.ask_position[0]*self.imtk.width()
+        y = self.ask_position[1]*self.imtk.height()
+        self.rec = self.canvas.create_rectangle(x, y, x+200, y+60, outline="white", fill="white")
+        self.text = self.canvas.create_text(x, y+30, anchor=W, font="Purisa", text=prob_cotent)
 
         print('sea: ', self.model.get_sea_probability(x_cor, y_cor))
         print('thin ice: ', self.model.get_thin_ice_probability(x_cor, y_cor))
@@ -567,7 +573,7 @@ class MainWindow:
     def __reset(self):
 
         # clear input entries
-        for e in [self.e1, self.e2, self.e3, self.e4, self.e5]:
+        for e in [self.e1, self.e2, self.e3, self.e4, self.e5, self.e6, self.e7]:
             e.delete(0, 'end')
         self.e5.insert(0, "1")
 
@@ -601,6 +607,16 @@ class MainWindow:
             self.b6.config(state='disabled')
         if index == 0:
             self.b5.config(state='normal')
+
+    def __open_filefolder(self):
+        from tkFileDialog import askopenfilename
+        Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
+        filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
+        self.inputfile = filename
+        print(filename)
+        img = Image.open(self.inputfile)
+        self.imtk = ImageTk.PhotoImage(img)
+        self.canvas.create_image(0, 0, image=self.imtk, anchor='nw')
 
     def __showhide_geogrids(self):
         if self.show_geogrids:
