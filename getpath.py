@@ -128,13 +128,13 @@ class ModisMap:
 
 
         # convert image to weighted graph
-        start_point = self.start_point
-        end_point = self.end_point
+        # start_point = self.start_point
+        # end_point = self.end_point
         # edges = self.__matrix2edge(start_point, end_point)
 
         # call dijkstra to get shortest path
-        start_index = self.__coor2index(start_point[0], start_point[1])
-        end_index = self.__coor2index(end_point[0], end_point[1])
+        # start_index = self.__coor2index(start_point[0], start_point[1])
+        # end_index = self.__coor2index(end_point[0], end_point[1])
 
         self.__init_distribution()
         self.__init_speed_direction()
@@ -150,6 +150,7 @@ class ModisMap:
         # assert not self.edges == []
 
         x_search_area,y_search_area = self.__get_search_area()
+
         rela_s = (self.start_point[0]-x_search_area[0], self.start_point[1]-y_search_area[0])
         rela_e = (self.end_point[0]-x_search_area[0], self.end_point[1]-y_search_area[0])
         cost, path = self.dijkstra_rela(cost_l, rela_s, rela_e, x_search_area[0], y_search_area[0],
@@ -164,6 +165,24 @@ class ModisMap:
             path_points.append(node)
 
         return path_points
+
+    def getpath_for_refresh(self):
+        self.__init_distribution()
+        self.__init_speed_direction()
+        #self.__init_feasible_region()
+        self.__init_infeasible_set()
+        # self.__init_edge_cost()
+        cost_l = self.__init_edge_cost()
+        # todo:safe check , assert all the prerequisite conditions are initalized
+        assert self.is_set
+        assert self.target is not None
+        assert self.safe_margin is not None
+        #assert self.feasible_set is not None
+        # assert not self.edges == []
+
+        x_search_area,y_search_area = self.__get_search_area()
+
+        return cost_l, x_search_area,y_search_area
 
     # paint the path
     def paint_path(self, path_points):
@@ -223,6 +242,7 @@ class ModisMap:
                         current_coor = np.array([x,y])
                         offset = np.array(list(self.risk_region))
                         result = offset + current_coor - (x_search_area[0], y_search_area[0])       # relative infeasible set!!!!
+                        # result = offset + current_coor
                         # print(len((set(map(tuple, result)))))
                         self.infeasible_set = self.infeasible_set | (set(map(tuple, result)))
         print('infeasible len',len(self.infeasible_set))
@@ -315,8 +335,8 @@ class ModisMap:
         #assert self.feasible_set is not None
         x_search_area,y_search_area = self.__get_search_area()
         self.edges = []
-        # len_x = x_search_area[1] - x_search_area[0]
-        # len_y = y_search_area[1] - y_search_area[0]
+        len_x = x_search_area[1] - x_search_area[0]
+        len_y = y_search_area[1] - y_search_area[0]
         # x_cor_range = np.zeros((len_y,len_x), dtype=int) + np.arange(x_search_area[0],x_search_area[1])
         # y_cor_range = (np.zeros((len_x,len_y), dtype=int) + np.arange(y_search_area[0],y_search_area[1])).transpose()
         # x_y_cor_range_c = np.dstack((x_cor_range, y_cor_range))     # current coordinate
@@ -326,11 +346,11 @@ class ModisMap:
         #     x_y_cor_range.append(x_y_cor_range_c + np.array(Para.offset_list[index]))
 
         cost_c = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
-        cost_c[list(self.infeasible_set)] = np.inf      # if a pixel is infeasible, then the cost to reach it is inf
-        for ii in range(0, len(self.infeasible_set)):
-            temp = self.infeasible_set.pop()
-            if temp[0] < x_search_area[1]-x_search_area[0] and temp[1] < y_search_area[1] - y_search_area[0]:
-                cost_c[temp] = np.inf
+        if len(self.infeasible_set) != 0:
+            infeasible_set = list(self.infeasible_set)
+            fun = lambda x : x[0] < len_x and x[1] < len_y
+            infeasible_set = np.array(filter(fun,infeasible_set))
+            cost_c[np.array(infeasible_set[:,0]), np.array(infeasible_set[:, 1])] = np.inf      # if a pixel is infeasible, then the cost to reach it is inf
         cost_l = []
         for index in range(0, 8):
             offset = Para.offset_list[index]
