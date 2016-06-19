@@ -16,7 +16,7 @@ class MainWindow:
     def __init__(self, master):
         # self.inputfile = 'bright.png'
         self.inputfile = 'MOD02QKM.A2014005.2110.006.2014218155544_band1.jpg'
-        self.probfile = 'Pro_MOD02QKM.A2014005.2110.006.2014218155544_band1_90_5000_90_8000.txt'
+        self.probfile = 'Pro_MOD02QKM.A2014005.2110.006.2014218155544_band1_full.txt'
         self.hdffile = 'MOD02QKM.A2014005.2110.006.2014218155544.hdf'
 
         hdf = SD(self.hdffile, SDC.READ)
@@ -60,16 +60,16 @@ class MainWindow:
         # frame_left_top = tk.Frame(master, width=800, height=800)
         # frame_left_bottom = tk.Frame(master, width=800, height=60)
         # frame_right = tk.Frame(master, width=200, height=850)
-        frame_left_top = tk.Frame(master, width=900, height=900)
-        frame_left_bottom = tk.Frame(master, width=900, height=60)
-        frame_right = tk.Frame(master, width=200, height=950)
+        frame_left_top = tk.Frame(master, width=850, height=850)
+        frame_left_bottom = tk.Frame(master, width=850, height=60)
+        frame_right = tk.Frame(master, width=200, height=900)
         frame_left_top.grid(row=0, column=0, padx=2, pady=2)
         frame_left_bottom.grid(row=1, column=0, padx=2, pady=2)
         frame_right.grid(row=0, column=1, rowspan=2, padx=2, pady=2)
 
         # build frame left top
         # self.canvas = tk.Canvas(frame_left_top, width=800, height=800)
-        self.canvas = tk.Canvas(frame_left_top, width=900, height=900)
+        self.canvas = tk.Canvas(frame_left_top, width=850, height=850)
         self.canvas.create_image(0, 0, image=self.imtk, anchor='nw')
 
         self.rec = None
@@ -340,7 +340,9 @@ class MainWindow:
 
         self.__draw_start_point()
         self.__draw_end_point()
+        self.__draw_ask_point()
         self.__draw_path()
+        self.__get_prob()
         if self.show_geogrids:
             self.__draw_geogrid()
 
@@ -457,6 +459,9 @@ class MainWindow:
         print('thick ice: ', self.model.get_thick_ice_probability(x_cor, y_cor))
 
     def __get_prob(self):
+        if self.ask_position == []:
+            return
+
         x_cor = self.ask_position[1] * self.model.w
         y_cor = self.ask_position[0] * self.model.h
 

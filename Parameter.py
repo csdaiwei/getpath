@@ -7,3 +7,6 @@ PIXEL_RATIO = 0             # the importance of of a pixel's gray level in calcu
 INF_THRESHOLD = 0.6         # if the pixel's probability of being thick ice/cloud lager than it, then this pixel is infeasible
 
 DIFF = 0.01                 # the accepted difference range between longitude and latitude
+
+offset_list = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
+dist_list = [1, 1, 1, 1, 1.414, 1.414, 1.414, 1.414]
