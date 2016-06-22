@@ -31,10 +31,6 @@ class MainWindow:
         # self.min_longitude = min_longitude if np.fabs(min_longitude - (-180)) > Para.DIFF else -180
         # self.max_latitude = max_latitude if np.fabs(max_latitude - 90) > Para.DIFF else 90
         # self.min_latitude = min_latitude if np.fabs(min_latitude - (-90)) > Para.DIFF else -90
-        # print(self.max_longitude)
-        # print(self.min_longitude)
-        # print(self.max_latitude)
-        # print(self.min_latitude)
 
         self.model = ModisMap(self.inputfile, self.probfile)
         self.start_position = []
@@ -168,12 +164,12 @@ class MainWindow:
         # callback bindings
         self.canvas.bind("<Button-1>", self.__canvas_click)
         self.canvas.bind("<Button-3>", self.__right_canvas_click)
-        self.e1.bind('<Tab>' or '<Enter>', self.__start_point_change)
-        self.e2.bind('<Tab>' or '<Enter>', self.__start_point_change)
-        self.e3.bind('<Tab>' or '<Enter>', self.__end_point_change)
-        self.e4.bind('<Tab>' or '<Enter>', self.__end_point_change)
-        self.e6.bind('<Tab>' or '<Enter>', self.__ask_point_change)
-        self.e7.bind('<Tab>' or '<Enter>', self.__ask_point_change)
+        self.e1.bind('<Tab>' or '<Leave>' or '<Return>', self.__start_point_change)
+        self.e2.bind('<Tab>' or '<Leave>' or '<Return>', self.__start_point_change)
+        self.e3.bind('<Tab>' or '<Leave>' or '<Return>', self.__end_point_change)
+        self.e4.bind('<Tab>' or '<Leave>' or '<Return>', self.__end_point_change)
+        self.e6.bind('<Tab>' or '<Leave>' or '<Return>', self.__ask_point_change)
+        self.e7.bind('<Tab>' or '<Leave>' or '<Return>', self.__ask_point_change)
 
         self.__rescale(0.2)
 
@@ -195,11 +191,7 @@ class MainWindow:
         lon_mat = self.longitude_matrix
         lat_mat = self.latitude_matrix
         xlen, ylen = lat_mat.shape  #2030 1354
-        # print(max(lon_mat))
-        # print(min(lon_mat))
-        # print(max(lat_mat))
-        # print(min(lat_mat))
-        
+
         vset = set([])
         for x in range(1, xlen-1):
             lon = lon_mat[x, :]
@@ -438,16 +430,6 @@ class MainWindow:
             'thin ice/cloud: ' + "{:.3f}".format(self.model.get_thin_ice_probability(x_cor, y_cor)) + '\n' + \
             'thick ice/cloud: ' + "{:.3f}".format(self.model.get_thick_ice_probability(x_cor, y_cor))
 
-        # if x_position < 0.5:
-        #     self.__delete_canvas_item(self.rec)
-        #     self.__delete_canvas_item(self.text)
-        #     self.rec = self.canvas.create_rectangle(600, 0, 900, 60, outline="white", fill="white")
-        #     self.text = self.canvas.create_text(600, 30, anchor=W, font="Purisa", text=prob_cotent)
-        # else:
-        #     self.__delete_canvas_item(self.rec)
-        #     self.__delete_canvas_item(self.text)
-        #     self.rec = self.canvas.create_rectangle(5, 0, 305, 60, outline="white", fill="white")
-        #     self.text = self.canvas.create_text(5, 30, anchor=W, font="Purisa", text=prob_cotent)
         self.__delete_canvas_item(self.rec)
         self.__delete_canvas_item(self.text)
         x = self.ask_position[0]*self.imtk.width()

@@ -126,43 +126,40 @@ class ModisMap:
     # point is absolute for both input and output
     def getpath_absolute(self):
 
-
-        # convert image to weighted graph
-        # start_point = self.start_point
-        # end_point = self.end_point
-        # edges = self.__matrix2edge(start_point, end_point)
-
-        # call dijkstra to get shortest path
-        # start_index = self.__coor2index(start_point[0], start_point[1])
-        # end_index = self.__coor2index(end_point[0], end_point[1])
-
         self.__init_distribution()
         self.__init_speed_direction()
         #self.__init_feasible_region()
         self.__init_infeasible_set()
-        # self.__init_edge_cost()
-        cost_l = self.__init_edge_cost()
+        self.__init_edge_cost()
+        # cost_l = self.__init_edge_cost()
         # todo:safe check , assert all the prerequisite conditions are initalized
         assert self.is_set
         assert self.target is not None
         assert self.safe_margin is not None
         #assert self.feasible_set is not None
-        # assert not self.edges == []
+        assert not self.edges == []
 
         x_search_area,y_search_area = self.__get_search_area()
 
-        rela_s = (self.start_point[0]-x_search_area[0], self.start_point[1]-y_search_area[0])
-        rela_e = (self.end_point[0]-x_search_area[0], self.end_point[1]-y_search_area[0])
-        cost, path = self.dijkstra_rela(cost_l, rela_s, rela_e, x_search_area[0], y_search_area[0],
-                                        x_search_area[1]-x_search_area[0], y_search_area[1]-y_search_area[0])
+        # rela_s = (self.start_point[0]-x_search_area[0], self.start_point[1]-y_search_area[0])
+        # rela_e = (self.end_point[0]-x_search_area[0], self.end_point[1]-y_search_area[0])
+        # cost, path = self.dijkstra_rela(cost_l, rela_s, rela_e, x_search_area[0], y_search_area[0],
+        #                                 x_search_area[1]-x_search_area[0], y_search_area[1]-y_search_area[0])
 
-        # cost, path = dijkstra(self.edges, start_index, end_index)
+        start_point = (np.floor((self.start_point[0]-x_search_area[0])/20)*20 + x_search_area[0],
+                       np.floor((self.start_point[1]-y_search_area[0])/20)*20 + y_search_area[0])
+        end_point = (np.floor((self.end_point[0]-x_search_area[0])/20)*20 + x_search_area[0],
+                     np.floor((self.end_point[1]-y_search_area[0])/20)*20 + y_search_area[0])
+        start_index = self.__coor2index(start_point[0], start_point[1])
+        end_index = self.__coor2index(end_point[0], end_point[1])
+
+        cost, path = dijkstra(self.edges, start_index, end_index)
 
         path_points = []
         while path != ():
             node, path = path
-            # path_points.append(self.__index2coor(node))
-            path_points.append(node)
+            path_points.append(self.__index2coor(node))
+            # path_points.append(node)
 
         return path_points
 
@@ -238,12 +235,11 @@ class ModisMap:
                     # if the probability of the pixel being thick ice/cloud larger than INF_THRESHOLD, then we treat this pixel as infeasible
                     curr_pros = self.get_thick_ice_probability(x,y)
                     # print(x,y,curr_pros)
-                    if curr_pros > Para.INF_THRESHOLD or self.matrix[x][y] > Para.MAX_PASSABLE_COLOR:
+                    if curr_pros > Para.INF_THRESHOLD:
                         current_coor = np.array([x,y])
                         offset = np.array(list(self.risk_region))
-                        result = offset + current_coor - (x_search_area[0], y_search_area[0])       # relative infeasible set!!!!
-                        # result = offset + current_coor
-                        # print(len((set(map(tuple, result)))))
+                        result = offset + current_coor
+                        # result = offset + current_coor - (x_search_area[0], y_search_area[0])       # relative infeasible set!!!!
                         self.infeasible_set = self.infeasible_set | (set(map(tuple, result)))
         print('infeasible len',len(self.infeasible_set))
 
@@ -335,8 +331,6 @@ class ModisMap:
         #assert self.feasible_set is not None
         x_search_area,y_search_area = self.__get_search_area()
         self.edges = []
-        len_x = x_search_area[1] - x_search_area[0]
-        len_y = y_search_area[1] - y_search_area[0]
         # x_cor_range = np.zeros((len_y,len_x), dtype=int) + np.arange(x_search_area[0],x_search_area[1])
         # y_cor_range = (np.zeros((len_x,len_y), dtype=int) + np.arange(y_search_area[0],y_search_area[1])).transpose()
         # x_y_cor_range_c = np.dstack((x_cor_range, y_cor_range))     # current coordinate
@@ -345,45 +339,47 @@ class ModisMap:
         # for index in range(0, 8):
         #     x_y_cor_range.append(x_y_cor_range_c + np.array(Para.offset_list[index]))
 
-        cost_c = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
-        if len(self.infeasible_set) != 0:
-            infeasible_set = list(self.infeasible_set)
-            fun = lambda x : x[0] < len_x and x[1] < len_y
-            infeasible_set = np.array(filter(fun,infeasible_set))
-            cost_c[np.array(infeasible_set[:,0]), np.array(infeasible_set[:, 1])] = np.inf      # if a pixel is infeasible, then the cost to reach it is inf
-        cost_l = []
-        for index in range(0, 8):
-            offset = Para.offset_list[index]
-            cost_l.append((self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]),
-                          (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]),2]+cost_c) * Para.dist_list[index])
-        return cost_l
+        # len_x = x_search_area[1] - x_search_area[0]
+        # len_y = y_search_area[1] - y_search_area[0]
+        # cost_c = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
+        # if len(self.infeasible_set) != 0:
+        #     infeasible_set = list(self.infeasible_set)
+        #     fun = lambda x : x[0] < len_x and x[1] < len_y
+        #     infeasible_set = np.array(filter(fun,infeasible_set))
+        #     cost_c[np.array(infeasible_set[:,0]), np.array(infeasible_set[:, 1])] = np.inf      # if a pixel is infeasible, then the cost to reach it is inf
+        # cost_l = []
+        # for index in range(0, 8):
+        #     offset = Para.offset_list[index]
+        #     cost_l.append((self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]),
+        #                   (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]),2]+cost_c) * Para.dist_list[index])
+        # return cost_l
 
 
-        # for x in range(x_search_area[0], x_search_area[1]):
-        #     for y in range(y_search_area[0], y_search_area[1]):
-        #         for index in range(0,8):
-        #             offset = Para.offset_list[index]
-        #             p1 = (x, y)
-        #             p2 = (x+offset[0], y+offset[1])
-        #             #if p1 in self.feasible_set and p2 in self.feasible_set:
-        #             if p1 not in self.infeasible_set and p2 not in self.infeasible_set:
-        #                 p1_index = self.__coor2index(p1[0], p1[1])
-        #                 p2_index = self.__coor2index(p2[0], p2[1])
-        #
-        #                 # when calculating a pixel's cost, take its probability of being thin ice/cloud into consideration
-        #                 # if not self.__is_in(p1[0], p1[1]):  #out of range
-        #                 #     p1_cost = self.__get_target_cost(p1[0], p1[1])
-        #                 # else:
-        #                 p1_cost = Para.PIXEL_RATIO * self.__get_target_cost(p1[0], p1[1]) + \
-        #                               (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p1) * Para.PROB_ENLAGRED_TIMES
-        #                 # if not self.__is_in(p2[0], p2[1]):
-        #                 #     p2_cost = self.__get_target_cost(p2[0], p2[1])
-        #                 # else:
-        #                 p2_cost = Para.PIXEL_RATIO * self.__get_target_cost(p2[0], p2[1]) + \
-        #                               (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p2) * Para.PROB_ENLAGRED_TIMES
-        #                 dist = Para.dist_list[index]
-        #                 cost = (p1_cost+p2_cost) * dist
-        #                 self.edges.append((p1_index, p2_index, cost))
+        for x in range(x_search_area[0], x_search_area[1], 20):
+            for y in range(y_search_area[0], y_search_area[1], 20):
+                for index in range(0,8):
+                    offset = Para.offset_list[index]
+                    p1 = (x, y)
+                    p2 = (x+offset[0], y+offset[1])
+                    #if p1 in self.feasible_set and p2 in self.feasible_set:
+                    if p1 not in self.infeasible_set and p2 not in self.infeasible_set:
+                        p1_index = self.__coor2index(p1[0], p1[1])
+                        p2_index = self.__coor2index(p2[0], p2[1])
+
+                        # when calculating a pixel's cost, take its probability of being thin ice/cloud into consideration
+                        # if not self.__is_in(p1[0], p1[1]):  #out of range
+                        #     p1_cost = self.__get_target_cost(p1[0], p1[1])
+                        # else:
+                        p1_cost = Para.PIXEL_RATIO * self.__get_target_cost(p1[0], p1[1]) + \
+                                      (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p1) * Para.PROB_ENLAGRED_TIMES
+                        # if not self.__is_in(p2[0], p2[1]):
+                        #     p2_cost = self.__get_target_cost(p2[0], p2[1])
+                        # else:
+                        p2_cost = Para.PIXEL_RATIO * self.__get_target_cost(p2[0], p2[1]) + \
+                                      (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p2) * Para.PROB_ENLAGRED_TIMES
+                        dist = Para.dist_list[index]
+                        cost = (p1_cost+p2_cost) * dist
+                        self.edges.append((p1_index, p2_index, cost))
 
 
     def __index2coor(self, index):
