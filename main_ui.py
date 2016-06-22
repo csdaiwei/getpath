@@ -532,8 +532,6 @@ class MainWindow:
         self.model.set_startend_position(start_position, end_position)
         self.model.set_target("time")
         self.model.set_safe_margin(margin)
-        self.path = self.model.getpath()
-        print(len(self.path))
 
         try:
             self.path = self.model.getpath()

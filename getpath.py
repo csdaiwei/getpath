@@ -98,7 +98,6 @@ class ModisMap:
     # 设置安全距离，保证船行驶的安全
     def set_safe_margin(self,safe_margin):
         self.safe_margin = safe_margin
-        print("safe margin is set to be:"+str(safe_margin))
         self.risk_region = set([])
         for xx in range(0, int(self.safe_margin)+1):
             for yy in range(0, int(self.safe_margin)+1):
@@ -106,7 +105,7 @@ class ModisMap:
                 self.risk_region.add((xx, -yy))
                 self.risk_region.add((-xx, yy))
                 self.risk_region.add((-xx, -yy))
-        #print(self.risk_region)
+        print("safe margin is set to be:"+str(safe_margin))
 
 
     # 根据起点和终点，获取最终的路径
@@ -130,36 +129,38 @@ class ModisMap:
         self.__init_speed_direction()
         #self.__init_feasible_region()
         self.__init_infeasible_set()
-        self.__init_edge_cost()
-        # cost_l = self.__init_edge_cost()
+        # self.__init_edge_cost()
+        cost_l = self.__init_edge_cost()
         # todo:safe check , assert all the prerequisite conditions are initalized
         assert self.is_set
         assert self.target is not None
         assert self.safe_margin is not None
         #assert self.feasible_set is not None
-        assert not self.edges == []
+        # assert not self.edges == []
 
         x_search_area,y_search_area = self.__get_search_area()
 
-        # rela_s = (self.start_point[0]-x_search_area[0], self.start_point[1]-y_search_area[0])
-        # rela_e = (self.end_point[0]-x_search_area[0], self.end_point[1]-y_search_area[0])
-        # cost, path = self.dijkstra_rela(cost_l, rela_s, rela_e, x_search_area[0], y_search_area[0],
-        #                                 x_search_area[1]-x_search_area[0], y_search_area[1]-y_search_area[0])
+        rela_s = (np.floor((self.start_point[0]-x_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE,
+                  np.floor((self.start_point[1]-y_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE)
+        rela_e = (np.floor((self.end_point[0]-x_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE,
+                  np.floor((self.end_point[1]-y_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE)
+        cost, path = self.dijkstra_rela(cost_l, rela_s, rela_e, x_search_area[0], y_search_area[0],
+                                        x_search_area[1]-x_search_area[0], y_search_area[1]-y_search_area[0])
 
-        start_point = (np.floor((self.start_point[0]-x_search_area[0])/20)*20 + x_search_area[0],
-                       np.floor((self.start_point[1]-y_search_area[0])/20)*20 + y_search_area[0])
-        end_point = (np.floor((self.end_point[0]-x_search_area[0])/20)*20 + x_search_area[0],
-                     np.floor((self.end_point[1]-y_search_area[0])/20)*20 + y_search_area[0])
-        start_index = self.__coor2index(start_point[0], start_point[1])
-        end_index = self.__coor2index(end_point[0], end_point[1])
-
-        cost, path = dijkstra(self.edges, start_index, end_index)
+        # start_point = (np.floor((self.start_point[0]-x_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE + x_search_area[0],
+        #                np.floor((self.start_point[1]-y_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE + y_search_area[0])
+        # end_point = (np.floor((self.end_point[0]-x_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE + x_search_area[0],
+        #              np.floor((self.end_point[1]-y_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE + y_search_area[0])
+        # start_index = self.__coor2index(start_point[0], start_point[1])
+        # end_index = self.__coor2index(end_point[0], end_point[1])
+        #
+        # cost, path = dijkstra(self.edges, start_index, end_index)
 
         path_points = []
         while path != ():
             node, path = path
-            path_points.append(self.__index2coor(node))
-            # path_points.append(node)
+            # path_points.append(self.__index2coor(node))
+            path_points.append(node)
 
         return path_points
 
@@ -225,22 +226,29 @@ class ModisMap:
     def __init_infeasible_set(self):
         self.infeasible_set = set([])
         x_search_area,y_search_area = self.__get_search_area()
-        for x in range(x_search_area[0], x_search_area[1]):
-            for y in range(y_search_area[0], y_search_area[1]):
-                # if the pixel is not in the range of probability file
-                # if not self.__is_in(x, y):
-                #     if self.matrix[x][y] > Para.MAX_PASSABLE_COLOR:
-                #         self.infeasible_set.add((x, y))
-                # else:
-                    # if the probability of the pixel being thick ice/cloud larger than INF_THRESHOLD, then we treat this pixel as infeasible
-                    curr_pros = self.get_thick_ice_probability(x,y)
-                    # print(x,y,curr_pros)
-                    if curr_pros > Para.INF_THRESHOLD:
-                        current_coor = np.array([x,y])
-                        offset = np.array(list(self.risk_region))
-                        result = offset + current_coor
-                        # result = offset + current_coor - (x_search_area[0], y_search_area[0])       # relative infeasible set!!!!
-                        self.infeasible_set = self.infeasible_set | (set(map(tuple, result)))
+        search_pros = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
+        coor = np.nonzero(search_pros > Para.INF_THRESHOLD)
+        offset = np.array(list(self.risk_region))
+        for ii in range(len(coor[0])):
+            current_coor = np.array([coor[0][ii],coor[1][ii]])
+            result = offset + current_coor       # relative infeasible set!!!!
+            self.infeasible_set = self.infeasible_set | (set(map(tuple, result)))
+        # for x in range(x_search_area[0], x_search_area[1]):
+        #     for y in range(y_search_area[0], y_search_area[1]):
+        #         # if the pixel is not in the range of probability file
+        #         # if not self.__is_in(x, y):
+        #         #     if self.matrix[x][y] > Para.MAX_PASSABLE_COLOR:
+        #         #         self.infeasible_set.add((x, y))
+        #         # else:
+        #             # if the probability of the pixel being thick ice/cloud larger than INF_THRESHOLD, then we treat this pixel as infeasible
+        #             curr_pros = self.get_thick_ice_probability(x,y)
+        #             # print(x,y,curr_pros)
+        #             if curr_pros > Para.INF_THRESHOLD:
+        #                 current_coor = np.array([x,y])
+        #                 offset = np.array(list(self.risk_region))
+        #                 # result = offset + current_coor
+        #                 result = offset + current_coor - (x_search_area[0], y_search_area[0])       # relative infeasible set!!!!
+        #                 self.infeasible_set = self.infeasible_set | (set(map(tuple, result)))
         print('infeasible len',len(self.infeasible_set))
 
     #初始化可行域，在后续初始化Dijkstra算法的边集时，可行域里面的点都是可达的，其余点都是不可达的
@@ -317,8 +325,8 @@ class ModisMap:
                     v2 = (v1[0] + offset[0], v1[1] + offset[1])
                     if v2[0] < 0 or v2[1] < 0 or v2[0] >= max_x or v2[1] >= max_y:
                         continue
-                    if v2 not in seen and cost_l[index][v2] != np.inf:
-                        heappush(q, (cost + cost_l[index][v2], v2, path))
+                    if v2 not in seen and cost_l[index][(np.floor(v2[0]/Para.RESCALE_SIZE),np.floor(v2[1]/Para.RESCALE_SIZE))] != np.inf:
+                        heappush(q, (cost + cost_l[index][(np.floor(v2[0]/Para.RESCALE_SIZE),np.floor(v2[1]/Para.RESCALE_SIZE))], v2, path))
 
         return (float('inf'), ())
 
@@ -339,47 +347,48 @@ class ModisMap:
         # for index in range(0, 8):
         #     x_y_cor_range.append(x_y_cor_range_c + np.array(Para.offset_list[index]))
 
-        # len_x = x_search_area[1] - x_search_area[0]
-        # len_y = y_search_area[1] - y_search_area[0]
-        # cost_c = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
-        # if len(self.infeasible_set) != 0:
-        #     infeasible_set = list(self.infeasible_set)
-        #     fun = lambda x : x[0] < len_x and x[1] < len_y
-        #     infeasible_set = np.array(filter(fun,infeasible_set))
-        #     cost_c[np.array(infeasible_set[:,0]), np.array(infeasible_set[:, 1])] = np.inf      # if a pixel is infeasible, then the cost to reach it is inf
-        # cost_l = []
-        # for index in range(0, 8):
-        #     offset = Para.offset_list[index]
-        #     cost_l.append((self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]),
-        #                   (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]),2]+cost_c) * Para.dist_list[index])
-        # return cost_l
+        len_x = x_search_area[1] - x_search_area[0]
+        len_y = y_search_area[1] - y_search_area[0]
+        cost_c = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
+        if len(self.infeasible_set) != 0:
+            infeasible_set = list(self.infeasible_set)
+            fun = lambda x : x[0] < len_x and x[1] < len_y
+            infeasible_set = np.array(filter(fun,infeasible_set))
+            cost_c[np.array(infeasible_set[:,0]), np.array(infeasible_set[:, 1])] = np.inf      # if a pixel is infeasible, then the cost to reach it is inf
+        cost_c = cost_c[0:len_x:Para.RESCALE_SIZE,0:len_y:Para.RESCALE_SIZE]
+        cost_l = []
+        for index in range(0, 8):
+            offset = Para.offset_list[index]
+            cost_l.append((self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]):Para.RESCALE_SIZE,
+                          (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]):Para.RESCALE_SIZE,2]+cost_c) * Para.dist_list[index])
+        return cost_l
 
 
-        for x in range(x_search_area[0], x_search_area[1], 20):
-            for y in range(y_search_area[0], y_search_area[1], 20):
-                for index in range(0,8):
-                    offset = Para.offset_list[index]
-                    p1 = (x, y)
-                    p2 = (x+offset[0], y+offset[1])
-                    #if p1 in self.feasible_set and p2 in self.feasible_set:
-                    if p1 not in self.infeasible_set and p2 not in self.infeasible_set:
-                        p1_index = self.__coor2index(p1[0], p1[1])
-                        p2_index = self.__coor2index(p2[0], p2[1])
-
-                        # when calculating a pixel's cost, take its probability of being thin ice/cloud into consideration
-                        # if not self.__is_in(p1[0], p1[1]):  #out of range
-                        #     p1_cost = self.__get_target_cost(p1[0], p1[1])
-                        # else:
-                        p1_cost = Para.PIXEL_RATIO * self.__get_target_cost(p1[0], p1[1]) + \
-                                      (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p1) * Para.PROB_ENLAGRED_TIMES
-                        # if not self.__is_in(p2[0], p2[1]):
-                        #     p2_cost = self.__get_target_cost(p2[0], p2[1])
-                        # else:
-                        p2_cost = Para.PIXEL_RATIO * self.__get_target_cost(p2[0], p2[1]) + \
-                                      (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p2) * Para.PROB_ENLAGRED_TIMES
-                        dist = Para.dist_list[index]
-                        cost = (p1_cost+p2_cost) * dist
-                        self.edges.append((p1_index, p2_index, cost))
+        # for x in range(x_search_area[0], x_search_area[1], Para.RESCALE_SIZE):
+        #     for y in range(y_search_area[0], y_search_area[1], Para.RESCALE_SIZE):
+        #         for index in range(0,8):
+        #             offset = Para.offset_list[index]
+        #             p1 = (x, y)
+        #             p2 = (x+offset[0], y+offset[1])
+        #             #if p1 in self.feasible_set and p2 in self.feasible_set:
+        #             if p1 not in self.infeasible_set and p2 not in self.infeasible_set:
+        #                 p1_index = self.__coor2index(p1[0], p1[1])
+        #                 p2_index = self.__coor2index(p2[0], p2[1])
+        #
+        #                 # when calculating a pixel's cost, take its probability of being thin ice/cloud into consideration
+        #                 # if not self.__is_in(p1[0], p1[1]):  #out of range
+        #                 #     p1_cost = self.__get_target_cost(p1[0], p1[1])
+        #                 # else:
+        #                 p1_cost = Para.PIXEL_RATIO * self.__get_target_cost(p1[0], p1[1]) + \
+        #                               (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p1) * Para.PROB_ENLAGRED_TIMES
+        #                 # if not self.__is_in(p2[0], p2[1]):
+        #                 #     p2_cost = self.__get_target_cost(p2[0], p2[1])
+        #                 # else:
+        #                 p2_cost = Para.PIXEL_RATIO * self.__get_target_cost(p2[0], p2[1]) + \
+        #                               (1-Para.PIXEL_RATIO) * self.get_thick_ice_probability_by_point(p2) * Para.PROB_ENLAGRED_TIMES
+        #                 dist = Para.dist_list[index]
+        #                 cost = (p1_cost+p2_cost) * dist
+        #                 self.edges.append((p1_index, p2_index, cost))
 
 
     def __index2coor(self, index):
@@ -398,25 +407,3 @@ class ModisMap:
             x, y = p[0], p[1]
             img[x-area:(x+area+1), y-area:(y+area+1)] = color
         return img
-
-
-if __name__ == '__main__':
-
-    start_point = (2100, 2700)
-    end_point = (3200, 3245)
-
-    m = ModisMap('input.png')
-    m.set_startend_point(start_point, end_point)
-    m.set_target("time")
-    m.set_safe_margin(5)
-    path =  m.getpath_absolute()
-
-    print 'convert to edges...'
-
-    img = m.paint_path(path)
-
-    print 'get shortest path...'
-
-    cv2.imwrite('out.png', img)
-
-    print('save as out.png')

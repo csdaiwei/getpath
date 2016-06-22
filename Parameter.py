@@ -8,6 +8,8 @@ INF_THRESHOLD = 0.6         # if the pixel's probability of being thick ice/clou
 
 DIFF = 0.01                 # the accepted difference range between longitude and latitude
 
+RESCALE_SIZE = 20           # rescale size
+
 # offset_list = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
 offset_list = [[20, 0], [-20, 0], [0, 20], [0, -20], [20, 20], [20, -20], [-20, 20], [-20, -20]]
 dist_list = [1, 1, 1, 1, 1.414, 1.414, 1.414, 1.414]
