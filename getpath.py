@@ -6,7 +6,7 @@ import Parameter as Para
 
 from math import sqrt
 from PIL import Image
-from dijkstra_algorithm import dijkstra
+from dijkstra_algorithm import *
 from collections import defaultdict
 from heapq import *
 
@@ -113,12 +113,12 @@ class ModisMap:
     def getpath(self):
         assert self.is_set
 
-        path = self.getpath_absolute()
+        path, cost = self.getpath_absolute()
         #img = self.paint_path(path)
         relative_path = [(p[1]/float(self.h), p[0]/float(self.w)) for p in path]
 
         #return relative_path, img
-        return relative_path
+        return relative_path, cost
 
 
     # 根据起点和终点，获取最终的路径
@@ -144,7 +144,7 @@ class ModisMap:
                   np.floor((self.start_point[1]-y_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE)
         rela_e = (np.floor((self.end_point[0]-x_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE,
                   np.floor((self.end_point[1]-y_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE)
-        cost, path = self.dijkstra_rela(cost_l, rela_s, rela_e, x_search_area[0], y_search_area[0],
+        cost, path = dijkstra_rela(cost_l, rela_s, rela_e, x_search_area[0], y_search_area[0],
                                         x_search_area[1]-x_search_area[0], y_search_area[1]-y_search_area[0])
 
         # start_point = (np.floor((self.start_point[0]-x_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE + x_search_area[0],
@@ -162,7 +162,7 @@ class ModisMap:
             # path_points.append(self.__index2coor(node))
             path_points.append(node)
 
-        return path_points
+        return path_points, cost
 
     def getpath_for_refresh(self):
         self.__init_distribution()
@@ -228,11 +228,14 @@ class ModisMap:
         x_search_area,y_search_area = self.__get_search_area()
         search_pros = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
         coor = np.nonzero(search_pros > Para.INF_THRESHOLD)
+        coor_pair = np.dstack((coor[0], coor[1]))[0]
         offset = np.array(list(self.risk_region))
-        for ii in range(len(coor[0])):
-            current_coor = np.array([coor[0][ii],coor[1][ii]])
-            result = offset + current_coor       # relative infeasible set!!!!
-            self.infeasible_set = self.infeasible_set | (set(map(tuple, result)))
+        result = coor_pair + offset[:,np.newaxis]
+        l,w,h = result.shape
+        result = result.reshape((l*w,h))
+        temp_set = set(map(tuple, result))
+        print('change set')
+        self.infeasible_set = self.infeasible_set | temp_set
         # for x in range(x_search_area[0], x_search_area[1]):
         #     for y in range(y_search_area[0], y_search_area[1]):
         #         # if the pixel is not in the range of probability file
@@ -309,28 +312,6 @@ class ModisMap:
     def get_thick_ice_probability_by_point(self,point):
         return self.__get_probability_by_point(point,2)
 
-    def dijkstra_rela(self, cost_l, s, e, offset_x, offset_y, max_x, max_y):          # get relative path, absolute_path = relative_path + start_point
-        q, seen = [(0, s, ())], set([])
-        while q:
-            (cost,v1,path) = heappop(q)
-            if v1 not in seen:
-                seen.add(v1)
-                path = ((v1[0]+offset_x,v1[1]+offset_y), path)
-
-                if v1[0] == e[0] and v1[1] == e[1]:
-                    return (cost, path)
-
-                for index in range(0, 8):
-                    offset = Para.offset_list[index]
-                    v2 = (v1[0] + offset[0], v1[1] + offset[1])
-                    if v2[0] < 0 or v2[1] < 0 or v2[0] >= max_x or v2[1] >= max_y:
-                        continue
-                    if v2 not in seen and cost_l[index][(np.floor(v2[0]/Para.RESCALE_SIZE),np.floor(v2[1]/Para.RESCALE_SIZE))] != np.inf:
-                        heappush(q, (cost + cost_l[index][(np.floor(v2[0]/Para.RESCALE_SIZE),np.floor(v2[1]/Para.RESCALE_SIZE))], v2, path))
-
-        return (float('inf'), ())
-
-
     # 初始化边集
     def __init_edge_cost(self):
         """
@@ -354,7 +335,7 @@ class ModisMap:
             infeasible_set = list(self.infeasible_set)
             fun = lambda x : x[0] < len_x and x[1] < len_y
             infeasible_set = np.array(filter(fun,infeasible_set))
-            cost_c[np.array(infeasible_set[:,0]), np.array(infeasible_set[:, 1])] = np.inf      # if a pixel is infeasible, then the cost to reach it is inf
+            cost_c[np.array(infeasible_set[:,0]), np.array(infeasible_set[:, 1])] = np.inf   # if a pixel is infeasible, then the cost to reach it is inf
         cost_c = cost_c[0:len_x:Para.RESCALE_SIZE,0:len_y:Para.RESCALE_SIZE]
         cost_l = []
         for index in range(0, 8):

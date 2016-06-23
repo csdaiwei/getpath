@@ -339,8 +339,6 @@ class MainWindow:
         if self.show_geogrids:
             self.__draw_geogrid()
 
-
-
     # callback functions below
 
     def __set_start_point_click(self):
@@ -533,85 +531,15 @@ class MainWindow:
         self.model.set_target("time")
         self.model.set_safe_margin(margin)
 
-        try:
-            self.path = self.model.getpath()
-        except:
-            tkMessageBox.showerror('Danger','Exception in find path')
-        else:
-            if len(self.path)==0:
+        # try:
+        self.path, cost = self.model.getpath()
+        # except:
+        #     tkMessageBox.showerror('Danger','Exception in find path')
+        # else:
+        if cost==np.inf:
                 tkMessageBox.showerror('Danger','Unreachable place')
-            else:
-                self.__draw_path()
-                print(len(self.path))
-
-    def __genpath_for_refresh(self):
-        # input check
-        for i in range(0, 4):
-            entries = [self.e1, self.e2, self.e3, self.e4]
-            names = ['起点经度', '起点纬度', '终点经度', '终点纬度', '最小间距']
-            s = entries[i].get()
-            try:
-                v = float(s)
-                if not 0 < v < 1:
-                    pass
-                    #raise Exception()  #todo
-            except:
-                tkMessageBox.showerror('Error', names[i] + '输入错误')
-                return
-
-        start_position = self.start_position
-        end_position = self.end_position
-        margin = float(self.e5.get())
-
-        self.model.set_startend_position(start_position, end_position)
-        self.model.set_target("time")
-        self.model.set_safe_margin(margin)
-        cost_l, x_search_area,y_search_area = self.model.getpath_for_refresh()
-        rela_s = (self.model.start_point[0]-x_search_area[0], self.model.start_point[1]-y_search_area[0])
-        rela_e = (self.model.end_point[0]-x_search_area[0], self.model.end_point[1]-y_search_area[0])
-        try:
-            cost, path = self.dijkstra_rela(cost_l, rela_s, rela_e, x_search_area[0], y_search_area[0],
-                                        x_search_area[1]-x_search_area[0], y_search_area[1]-y_search_area[0])
-        except:
-            tkMessageBox.showerror('Danger','Unreachable place')
-
-    def __process_path(self, path):
-        path_points = []
-        while path != ():
-            node, path = path
-            # path_points.append(self.__index2coor(node))
-            path_points.append(node)
-
-        relative_path = [(p[1]/float(self.model.h), p[0]/float(self.model.w)) for p in path_points]
-
-        return relative_path
-
-    def dijkstra_rela(self, cost_l, s, e, offset_x, offset_y, max_x, max_y):          # get relative path, absolute_path = relative_path + start_point
-        q, seen = [(0, s, ())], set([])
-        old_s = s
-        while q:
-            (cost,v1,path) = heappop(q)
-            if v1 not in seen:
-                seen.add(v1)
-                path = ((v1[0]+offset_x,v1[1]+offset_y), path)
-
-                if np.fabs(v1[0]-old_s[0]) + np.fabs(v1[1]-old_s[1]) > 30:
-                    old_s = v1
-                    self.path = self.__process_path(path)
-                    self.__draw_path()
-
-                if v1[0] == e[0] and v1[1] == e[1]:
-                    return (cost, path)
-
-                for index in range(0, 8):
-                    offset = Para.offset_list[index]
-                    v2 = (v1[0] + offset[0], v1[1] + offset[1])
-                    if v2[0] < 0 or v2[1] < 0 or v2[0] >= max_x or v2[1] >= max_y:
-                        continue
-                    if v2 not in seen and cost_l[index][v2] != np.inf:
-                        heappush(q, (cost + cost_l[index][v2], v2, path))
-
-        raise ValueError('Path not found. Infeasible!')
+        self.__draw_path()
+        print(len(self.path))
 
     # callback of breset
     def __reset(self):
