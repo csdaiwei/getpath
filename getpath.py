@@ -30,6 +30,10 @@ class ModisMap:
         self.end_point = (0, 0)
         self.is_set = False     #weather start point and end point is set,起点和终点是否被设置
 
+        # the ratio that separate cost contributes to overall cost
+        self.alpha = 1
+        self.beta = 0
+
         #use a str to represent the target to optimize, the correspondence is as follows
         #时间：time, 油耗：fuel etc.
         self.target = None      # target to optimize，需要优化的目标
@@ -92,7 +96,7 @@ class ModisMap:
     def set_target(self,target):
 
         self.target = target
-        print("optimize target to be:"+str(target))
+        print("optimize target to be:"+target)
 
 
     # 设置安全距离，保证船行驶的安全
@@ -138,7 +142,7 @@ class ModisMap:
         #assert self.feasible_set is not None
         # assert not self.edges == []
 
-        x_search_area,y_search_area = self.__get_search_area()
+        x_search_area,y_search_area = self.get_search_area()
 
         rela_s = (np.floor((self.start_point[0]-x_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE,
                   np.floor((self.start_point[1]-y_search_area[0])/Para.RESCALE_SIZE)*Para.RESCALE_SIZE)
@@ -178,7 +182,7 @@ class ModisMap:
         #assert self.feasible_set is not None
         # assert not self.edges == []
 
-        x_search_area,y_search_area = self.__get_search_area()
+        x_search_area,y_search_area = self.get_search_area()
 
         return cost_l, x_search_area,y_search_area
 
@@ -212,7 +216,7 @@ class ModisMap:
 
     # 大致初始化一个的可行域
     # todo:this function needs to be refined, rectangle may not be the best shape to choose and EXTEND_SEARCH_SIZE should be set more cautiously
-    def __get_search_area(self):
+    def get_search_area(self):
         x_search_area = [0, 0]
         y_search_area = [0, 0]
         x_search_area[0] = min(self.start_point[0], self.end_point[0]) - Para.EXTEND_SEARCH_SIZE
@@ -225,7 +229,7 @@ class ModisMap:
     # find unreachable area
     def __init_infeasible_set(self):
         self.infeasible_set = set([])
-        x_search_area,y_search_area = self.__get_search_area()
+        x_search_area,y_search_area = self.get_search_area()
         search_pros = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
         coor = np.nonzero(search_pros > Para.INF_THRESHOLD)
         coor_pair = np.dstack((coor[0], coor[1]))[0]
@@ -260,7 +264,7 @@ class ModisMap:
         intialize feasible region
         :rtype:
         """
-        x_search_area,y_search_area = self.__get_search_area()
+        x_search_area,y_search_area = self.get_search_area()
         self.feasible_set = set([])
         for x in range(x_search_area[0], x_search_area[1]):
             for y in range(y_search_area[0], y_search_area[1]):
@@ -271,21 +275,55 @@ class ModisMap:
     # 获取一个像素点在当前目标下的cost
     # todo：this function may need the distrbution of a pix, and we may also need a function which maps distribution to target cost.The function can be extrct from history data
     # todo: If we do not use the detifition of the pix point cost, we may need to change to algorithm a lot
-    def __get_target_cost(self, x, y):
+    def __get_target_cost(self, cost):
         assert self.target is not None
-        if self.target=="fuel":
-            return self.__fuel_cost(x,y)
-        elif self.target=="time":
-            return self.__time_cost(x,y)
+        if self.target.encode('UTF-8')=="路程":
+            return self.__dist_cost(cost)
+        elif self.target.encode('UTF-8')=="破冰":
+            return self.__ice_cost(cost)
+        elif self.target.encode('UTF-8')=='时间':
+            return self.__time_cost(cost)
+        elif self.target == 'ratio':
+            if self.alpha == 1.0:
+                return self.__dist_cost(cost)
+            if self.beta == 1.0:
+                return self.__ice_cost(cost)
+            cost_dist = self.__dist_cost(cost)
+            cost_ice = self.__ice_cost(cost)
+            cost_l = []
+            for i in range(len(cost_dist)):
+                cost_l.append(self.alpha*cost_dist[i]+self.beta*cost_ice[i])
+            return cost_l
 
-    def __time_cost(self,x,y):
-        v = self.matrix[x][y]
-        if v<10:
-            return 1
-        return v+1
-    def __fuel_cost(self,x,y):
-        v = self.matrix[x][y]
-        return v**3+1
+    def __dist_cost(self,cost):
+        cost_l = []
+        for index in range(0, 8):
+            cost_l.append(cost + Para.dist_list[index] + Para.REGULARIZER)
+        return cost_l
+
+    def __ice_cost(self,cost):
+        cost_l = []
+        x_search_area,y_search_area = self.get_search_area()
+        for index in range(0, 8):
+            offset = Para.offset_list[index]
+            temp_cost = 1 - self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]):Para.RESCALE_SIZE,
+                          (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]):Para.RESCALE_SIZE,0] + \
+                        self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]):Para.RESCALE_SIZE,
+                          (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]):Para.RESCALE_SIZE,2]
+            cost_l.append(temp_cost + cost + Para.REGULARIZER)
+        return cost_l
+
+    def __time_cost(self,cost):
+        cost_l = []
+        x_search_area,y_search_area = self.get_search_area()
+        for index in range(0, 8):
+            offset = Para.offset_list[index]
+            temp_cost = 1 - self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]):Para.RESCALE_SIZE,
+                          (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]):Para.RESCALE_SIZE,0] + \
+                        self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]):Para.RESCALE_SIZE,
+                          (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]):Para.RESCALE_SIZE,2]
+            cost_l.append((temp_cost+cost)*Para.dist_list[index]/Para.ICE_SPEED + (1-(temp_cost+cost))*Para.dist_list[index]/Para.SEA_SPEED)
+        return cost_l
 
     def get_sea_probability(self,x,y):
         # return self.prob[x-self.prob_x_start, y-self.prob_y_start, 0]
@@ -318,7 +356,7 @@ class ModisMap:
         intialize cost of egdes
         """
         #assert self.feasible_set is not None
-        x_search_area,y_search_area = self.__get_search_area()
+        x_search_area,y_search_area = self.get_search_area()
         self.edges = []
         # x_cor_range = np.zeros((len_y,len_x), dtype=int) + np.arange(x_search_area[0],x_search_area[1])
         # y_cor_range = (np.zeros((len_x,len_y), dtype=int) + np.arange(y_search_area[0],y_search_area[1])).transpose()
@@ -330,19 +368,16 @@ class ModisMap:
 
         len_x = x_search_area[1] - x_search_area[0]
         len_y = y_search_area[1] - y_search_area[0]
-        cost_c = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
+        # cost_c = self.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
+        cost_c = np.zeros((len_x, len_y))
         if len(self.infeasible_set) != 0:
             infeasible_set = list(self.infeasible_set)
             fun = lambda x : x[0] < len_x and x[1] < len_y
             infeasible_set = np.array(filter(fun,infeasible_set))
             cost_c[np.array(infeasible_set[:,0]), np.array(infeasible_set[:, 1])] = np.inf   # if a pixel is infeasible, then the cost to reach it is inf
+        # cost_c = self.__get_target_cost(cost_c[0:len_x:Para.RESCALE_SIZE,0:len_y:Para.RESCALE_SIZE])
         cost_c = cost_c[0:len_x:Para.RESCALE_SIZE,0:len_y:Para.RESCALE_SIZE]
-        cost_l = []
-        for index in range(0, 8):
-            offset = Para.offset_list[index]
-            cost_l.append((self.prob[(x_search_area[0]+offset[0]):(x_search_area[1]+offset[0]):Para.RESCALE_SIZE,
-                          (y_search_area[0]+offset[1]):(y_search_area[1]+offset[1]):Para.RESCALE_SIZE,2]+cost_c) * Para.dist_list[index])
-        return cost_l
+        return self.__get_target_cost(cost_c)
 
 
         # for x in range(x_search_area[0], x_search_area[1], Para.RESCALE_SIZE):

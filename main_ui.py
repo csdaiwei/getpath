@@ -115,7 +115,10 @@ class MainWindow:
         l3 = tk.Label(frame_right, text='终点经度')
         l4 = tk.Label(frame_right, text='终点纬度')
         l5 = tk.Label(frame_right, text='最小间距')
-        l6 = tk.Label(frame_right, text='优化目标')
+        l6 = tk.Label(frame_right, text='单一目标')
+        l6_1 = tk.Label(frame_right, text='综合目标')
+        l9 = tk.Label(frame_right, text='路程')
+        l0 = tk.Label(frame_right, text='破冰')
         l7 = tk.Label(frame_right, text='查询经度')
         l8 = tk.Label(frame_right, text='查询纬度')
         l1.grid(row=0, column=0, pady=20)
@@ -124,8 +127,11 @@ class MainWindow:
         l4.grid(row=3, column=0, pady=20)
         l5.grid(row=4, column=0, pady=20)
         l6.grid(row=5, column=0, pady=20)
-        l7.grid(row=8, column=0, pady=20)
-        l8.grid(row=9, column=0, pady=20)
+        l6_1.grid(row=8, column=0)
+        l9.grid(row=8, column=2)
+        l0.grid(row=9, column=2)
+        l7.grid(row=11, column=0, pady=20)
+        l8.grid(row=12, column=0, pady=20)
 
         self.e1 = tk.Entry(frame_right, width=10)
         self.e2 = tk.Entry(frame_right, width=10)
@@ -134,42 +140,68 @@ class MainWindow:
         self.e5 = tk.Entry(frame_right, width=10)
         self.e6 = tk.Entry(frame_right, width=10)
         self.e7 = tk.Entry(frame_right, width=10)
+        self.e8 = tk.Entry(frame_right, width=10)
+        self.e9 = tk.Entry(frame_right, width=10)
         self.e1.grid(row=0, column=1)
         self.e2.grid(row=1, column=1)
         self.e3.grid(row=2, column=1)
         self.e4.grid(row=3, column=1)
         self.e5.grid(row=4, column=1)
         self.e5.insert(0, "1")
-        self.e6.grid(row=8, column=1)
-        self.e7.grid(row=9, column=1)
+        self.e6.grid(row=11, column=1)
+        self.e7.grid(row=12, column=1)
+        self.e8.grid(row=8, column=1)
+        self.e9.grid(row=9, column=1)
+        self.e8.insert(0, "1")
+        self.e9.insert(0, '0')
 
 
-        option_list = ['时间', '油耗', '路程']
+        option_list = ['路程', '破冰', '时间']
         v = tk.StringVar(frame_right, option_list[0])
         om = tk.OptionMenu(frame_right, v, *option_list)
         om.config(width=9)
         om.grid(row=5, column=1)
 
         blank = tk.Label(frame_right, height=12)
-        blank.grid(row=12)
+        blank.grid(row=15)
 
-        bgen = tk.Button(frame_right, command=self.__genpath, text='生成路径')
+        bgen_s = tk.Button(frame_right, command=lambda :self.__genpath(v.get()), text='生成路径')
+        bgen_m = tk.Button(frame_right, command=lambda :self.__genpath('ratio'), text='生成路径')
         bask = tk.Button(frame_right, command=self.__get_prob, text='查询')
         breset = tk.Button(frame_right, command=self.__reset, text='复位')
-        bgen.grid(row=6, column=0, columnspan=2, pady=20)
-        bask.grid(row=10, column=0, columnspan=2, pady=20)
-        breset.grid(row=12, column=0, columnspan=2, pady=20)
+        bgen_s.grid(row=6, column=0, columnspan=2, pady=20)
+        bgen_m.grid(row=10, column=0, columnspan=2, pady=20)
+        bask.grid(row=13, column=0, columnspan=2, pady=20)
+        breset.grid(row=15, column=0, columnspan=2, pady=20)
 
         
         # callback bindings
         self.canvas.bind("<Button-1>", self.__canvas_click)
         self.canvas.bind("<Button-3>", self.__right_canvas_click)
-        self.e1.bind('<Tab>' or '<Leave>' or '<Return>', self.__start_point_change)
-        self.e2.bind('<Tab>' or '<Leave>' or '<Return>', self.__start_point_change)
-        self.e3.bind('<Tab>' or '<Leave>' or '<Return>', self.__end_point_change)
-        self.e4.bind('<Tab>' or '<Leave>' or '<Return>', self.__end_point_change)
-        self.e6.bind('<Tab>' or '<Leave>' or '<Return>', self.__ask_point_change)
-        self.e7.bind('<Tab>' or '<Leave>' or '<Return>', self.__ask_point_change)
+        self.e1.bind('<Tab>', self.__start_point_change)
+        self.e1.bind('<Leave>', self.__start_point_change)
+        self.e1.bind('<Return>', self.__start_point_change)
+        self.e2.bind('<Tab>', self.__start_point_change)
+        self.e2.bind('<Leave>', self.__start_point_change)
+        self.e2.bind('<Return>', self.__start_point_change)
+        self.e3.bind('<Tab>', self.__end_point_change)
+        self.e3.bind('<Leave>', self.__end_point_change)
+        self.e3.bind('<Return>', self.__end_point_change)
+        self.e4.bind('<Tab>', self.__end_point_change)
+        self.e4.bind('<Leave>', self.__end_point_change)
+        self.e4.bind('<Return>', self.__end_point_change)
+        self.e6.bind('<Tab>', self.__ask_point_change)
+        self.e6.bind('<Leave>', self.__ask_point_change)
+        self.e6.bind('<Return>', self.__ask_point_change)
+        self.e7.bind('<Tab>', self.__ask_point_change)
+        self.e7.bind('<Leave>', self.__ask_point_change)
+        self.e7.bind('<Return>', self.__ask_point_change)
+        self.e8.bind('<Tab>', self.__ratio_change_alpha)
+        self.e8.bind('<Leave>', self.__ratio_change_alpha)
+        self.e8.bind('<Return>', self.__ratio_change_alpha)
+        self.e9.bind('<Tab>', self.__ratio_change_beta)
+        self.e9.bind('<Leave>', self.__ratio_change_beta)
+        self.e9.bind('<Return>', self.__ratio_change_beta)
 
         self.__rescale(0.2)
 
@@ -303,7 +335,6 @@ class MainWindow:
 
 
     def __draw_path(self):
-        print('-----------draw-------------')
         for canvas_path_point in self.canvas_path:
             self.__delete_canvas_item(canvas_path_point)
         self.canvas_path = []
@@ -356,7 +387,7 @@ class MainWindow:
         except:
             if self.e1.get() != "":
                 tkMessageBox.showerror('Wrong','Invalid Input!')
-            pass
+            return
         try:
             latitude = float(self.e2.get())
             # if latitude > self.max_latitude or latitude < self.min_latitude:
@@ -365,7 +396,7 @@ class MainWindow:
         except:
             if self.e2.get() != "":
                 tkMessageBox.showerror('Wrong','Invalid Input!')
-            pass
+            return
         # else:
         #     x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
         #     self.start_position = (x_position, y_position)
@@ -374,7 +405,7 @@ class MainWindow:
             x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
         except:
             tkMessageBox.showerror('Wrong','Out of range!')
-            pass
+            return
         else:
             self.start_position = (x_position, y_position)
             self.__draw_start_point()
@@ -385,18 +416,18 @@ class MainWindow:
         except:
             if self.e3.get() != "":
                 tkMessageBox.showerror('Wrong','Invalid Input!')
-            pass
+            return
         try:
             latitude = float(self.e4.get())
         except:
             if self.e4.get() != "":
                 tkMessageBox.showerror('Wrong','Invalid Input!')
-            pass
+            return
         try:
             x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
         except:
             tkMessageBox.showerror('Wrong','Out of range!')
-            pass
+            return
         else:
             self.end_position = (x_position, y_position)
             self.__draw_end_point()
@@ -407,21 +438,49 @@ class MainWindow:
         except:
             if self.e6.get() != "":
                 tkMessageBox.showerror('Wrong','Invalid Input!')
-            pass
+            return
         try:
             latitude = float(self.e7.get())
         except:
             if self.e7.get() != "":
                 tkMessageBox.showerror('Wrong','Invalid Input!')
-            pass
+            return
         try:
             x_position, y_position = self.__geocoordinates_to_position(longitude, latitude)
         except:
             tkMessageBox.showerror('Wrong','Out of range!')
-            pass
+            return
         else:
             self.ask_position = (x_position, y_position)
             self.__draw_ask_point()
+
+    def __ratio_change_alpha(self, event):
+        try:
+            alpha = float(self.e8.get())
+        except:
+            tkMessageBox.showerror('Wrong','Invalid Input!')
+            return
+        else:
+            if alpha > 1 or alpha < 0:
+                tkMessageBox.showerror('Wrong','Out of range!')
+                return
+            beta = 1 - alpha
+            self.e9.delete(0, 'end')
+            self.e9.insert(0, str(beta))
+
+    def __ratio_change_beta(self, event):
+        try:
+            beta = float(self.e9.get())
+        except:
+            tkMessageBox.showerror('Wrong','Invalid Input!')
+            return
+        else:
+            if beta > 1 or beta < 0:
+                tkMessageBox.showerror('Wrong','Out of range!')
+                return
+            alpha = 1 - beta
+            self.e8.delete(0, 'end')
+            self.e8.insert(0, str(alpha))
 
     def __show_prob(self, x_cor, y_cor, x_position):
         prob_cotent = 'sea: ' + "{:.3f}".format(self.model.get_sea_probability(x_cor, y_cor)) + '\n' + \
@@ -504,8 +563,22 @@ class MainWindow:
         self.__show_prob(x_cor, y_cor, x_position)
 
     # callback of bgen
-    def __genpath(self):
-
+    def __genpath(self, target):
+        print(target)
+        if target == 'ratio':
+            try:
+                alpha = float(self.e8.get())
+                beta = float(self.e9.get())
+            except:
+                tkMessageBox.showerror('Wrong','Invalid Input!')
+                return
+            else:
+                if alpha + beta != 1 or alpha < 0 or alpha > 1 or beta < 0 or beta > 1:
+                    tkMessageBox.showerror('Wrong','Invalid Input!')
+                    return
+                else:
+                    self.model.alpha = alpha
+                    self.model.beta = beta
         # input check
         for i in range(0, 4):
             entries = [self.e1, self.e2, self.e3, self.e4]
@@ -528,18 +601,42 @@ class MainWindow:
         margin = float(self.e5.get())
 
         self.model.set_startend_position(start_position, end_position)
-        self.model.set_target("time")
+        self.model.set_target(target)
         self.model.set_safe_margin(margin)
 
         # try:
+        x_search_area, y_search_area = self.model.get_search_area()
+        thick_ice_prob_matrix = self.model.prob[x_search_area[0]:x_search_area[1],y_search_area[0]:y_search_area[1],2]
+        thick_ice_prob_matrix = np.flipud(thick_ice_prob_matrix)
         self.path, cost = self.model.getpath()
         # except:
         #     tkMessageBox.showerror('Danger','Exception in find path')
         # else:
         if cost==np.inf:
-                tkMessageBox.showerror('Danger','Unreachable place')
+            tkMessageBox.showerror('Danger','Unreachable place')
         self.__draw_path()
         print(len(self.path))
+
+        x_list = []
+        y_list = []
+        x_len = x_search_area[1]-x_search_area[0]
+        y_len = y_search_area[1]-y_search_area[0]
+        for point in self.path:
+            x_list.append(point[0]*self.model.h-y_search_area[0])
+            y_list.append(x_len-(point[1]*self.model.w-x_search_area[0]))
+        import matplotlib.pyplot as plt
+        plt.clf()
+        plt.pcolormesh(thick_ice_prob_matrix,cmap='seismic', vmin=0, vmax=1)
+        plt.xlim([0,x_len])
+        plt.ylim([0,y_len])
+        plt.axis('image')
+        plt.colorbar()
+        plt.plot(x_list,y_list,color="green",linewidth=3.0)
+        x_start, y_start = (self.start_position[0]*self.model.h-y_search_area[0], x_len-(self.start_position[1]*self.model.w-x_search_area[0]))
+        x_end, y_end= (self.end_position[0]*self.model.h-y_search_area[0], x_len-(self.end_position[1]*self.model.w-x_search_area[0]))
+        plt.plot(x_start,y_start,'ro',linewidth=5.0)
+        plt.plot(x_end,y_end,'bo',linewidth=5.0)
+        plt.show()
 
     # callback of breset
     def __reset(self):

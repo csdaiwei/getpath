@@ -10,6 +10,11 @@ DIFF = 0.01                 # the accepted difference range between longitude an
 
 RESCALE_SIZE = 20           # rescale size
 
+REGULARIZER = 0.000000001
+
+ICE_SPEED = 1.2
+SEA_SPEED = 3.0
+
 # offset_list = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
 offset_list = [[20, 0], [-20, 0], [0, 20], [0, -20], [20, 20], [20, -20], [-20, 20], [-20, -20]]
 dist_list = [1, 1, 1, 1, 1.414, 1.414, 1.414, 1.414]

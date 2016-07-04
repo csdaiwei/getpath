@@ -40,7 +40,8 @@ def dijkstra_rela(cost_l, s, e, offset_x, offset_y, max_x, max_y):
                 v2 = (v1[0] + offset[0], v1[1] + offset[1])
                 if v2[0] < 0 or v2[1] < 0 or v2[0] >= max_x or v2[1] >= max_y:
                     continue
-                if v2 not in seen and cost_l[index][(np.floor(v2[0]/Para.RESCALE_SIZE),np.floor(v2[1]/Para.RESCALE_SIZE))] != np.inf:
+                if v2 not in seen and cost_l[index][(np.floor(v2[0]/Para.RESCALE_SIZE),np.floor(v2[1]/Para.RESCALE_SIZE))] != np.inf\
+                        and cost_l[index][(np.floor(v2[0]/Para.RESCALE_SIZE),np.floor(v2[1]/Para.RESCALE_SIZE))] != np.nan:
                     heappush(q, (cost + cost_l[index][(np.floor(v2[0]/Para.RESCALE_SIZE),np.floor(v2[1]/Para.RESCALE_SIZE))], v2, path))
 
     return (np.inf, path)
