@@ -13,6 +13,14 @@ import Parameter as Para
 
 from heapq import *
 
+# scrollbar position on rescale     ok
+# showprob content & position       ok
+# dynamic path draw width           ok
+# change modis                      cancled
+# margin                            cancled
+# mouse left drag
+# cost
+
 class MainWindow:
     def __init__(self, master):
         # self.inputfile = 'bright.png'
@@ -46,7 +54,7 @@ class MainWindow:
         self.show_geogrids = False
         self.click_canvas_to_set_start_point = True
 
-        self.scale_level = [0.05, 0.1, 0.2, 0.5, 0.75, 1.0, 1.5, 2]
+        self.scale_level = [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
         self.current_scale = 1.0
 
         img = Image.open(self.inputfile)
@@ -114,7 +122,7 @@ class MainWindow:
         l2 = tk.Label(frame_right, text='起点纬度')
         l3 = tk.Label(frame_right, text='终点经度')
         l4 = tk.Label(frame_right, text='终点纬度')
-        l5 = tk.Label(frame_right, text='最小间距')
+        #l5 = tk.Label(frame_right, text='最小间距')
         l6 = tk.Label(frame_right, text='单一目标')
         l6_1 = tk.Label(frame_right, text='综合目标')
         l9 = tk.Label(frame_right, text='路程')
@@ -125,19 +133,24 @@ class MainWindow:
         l2.grid(row=1, column=0, pady=20)
         l3.grid(row=2, column=0, pady=20)
         l4.grid(row=3, column=0, pady=20)
-        l5.grid(row=4, column=0, pady=20)
-        l6.grid(row=5, column=0, pady=20)
-        l6_1.grid(row=8, column=0)
-        l9.grid(row=8, column=2)
-        l0.grid(row=9, column=2)
-        l7.grid(row=11, column=0, pady=20)
-        l8.grid(row=12, column=0, pady=20)
+        #l5.grid(row=4, column=0, pady=20)
+        
+
+        blank = tk.Label(frame_right, height=5)
+        blank.grid(row=5)
+
+        l6.grid(row=6, column=0)
+        l6_1.grid(row=9, column=0)
+        l9.grid(row=9, column=2)
+        l0.grid(row=10, column=2)
+        #l7.grid(row=11, column=0, pady=20)
+        #l8.grid(row=12, column=0, pady=20)
 
         self.e1 = tk.Entry(frame_right, width=10)
         self.e2 = tk.Entry(frame_right, width=10)
         self.e3 = tk.Entry(frame_right, width=10)
         self.e4 = tk.Entry(frame_right, width=10)
-        self.e5 = tk.Entry(frame_right, width=10)
+        #self.e5 = tk.Entry(frame_right, width=10)
         self.e6 = tk.Entry(frame_right, width=10)
         self.e7 = tk.Entry(frame_right, width=10)
         self.e8 = tk.Entry(frame_right, width=10)
@@ -146,12 +159,12 @@ class MainWindow:
         self.e2.grid(row=1, column=1)
         self.e3.grid(row=2, column=1)
         self.e4.grid(row=3, column=1)
-        self.e5.grid(row=4, column=1)
-        self.e5.insert(0, "1")
-        self.e6.grid(row=11, column=1)
-        self.e7.grid(row=12, column=1)
-        self.e8.grid(row=8, column=1)
-        self.e9.grid(row=9, column=1)
+        #self.e5.grid(row=4, column=1)
+        #self.e5.insert(0, "1")
+        #self.e6.grid(row=11, column=1)
+        #self.e7.grid(row=12, column=1)
+        self.e8.grid(row=9, column=1)
+        self.e9.grid(row=10, column=1)
         self.e8.insert(0, "1")
         self.e9.insert(0, '0')
 
@@ -160,20 +173,22 @@ class MainWindow:
         v = tk.StringVar(frame_right, option_list[0])
         om = tk.OptionMenu(frame_right, v, *option_list)
         om.config(width=9)
-        om.grid(row=5, column=1)
+        om.grid(row=6, column=1)
 
-        blank = tk.Label(frame_right, height=12)
-        blank.grid(row=15)
+        blank = tk.Label(frame_right, height=2)
+        blank.grid(row=8)
 
         bgen_s = tk.Button(frame_right, command=lambda :self.__genpath(v.get()), text='生成路径')
         bgen_m = tk.Button(frame_right, command=lambda :self.__genpath('ratio'), text='生成路径')
-        bask = tk.Button(frame_right, command=self.__get_prob, text='查询')
+        #bask = tk.Button(frame_right, command=self.__get_prob, text='查询')
         breset = tk.Button(frame_right, command=self.__reset, text='复位')
-        bgen_s.grid(row=6, column=0, columnspan=2, pady=20)
-        bgen_m.grid(row=10, column=0, columnspan=2, pady=20)
-        bask.grid(row=13, column=0, columnspan=2, pady=20)
+        bgen_s.grid(row=7, column=0, columnspan=2, pady=20)
+        bgen_m.grid(row=11, column=0, columnspan=2, pady=20)
+        #bask.grid(row=13, column=0, columnspan=2, pady=20)
         breset.grid(row=15, column=0, columnspan=2, pady=20)
 
+        blank = tk.Label(frame_right, height=8)
+        blank.grid(row=15)
         
         # callback bindings
         self.canvas.bind("<Button-1>", self.__canvas_click)
@@ -339,11 +354,17 @@ class MainWindow:
             self.__delete_canvas_item(canvas_path_point)
         self.canvas_path = []
 
+        width = 1
+        if self.current_scale >= 0.8:
+            width = 2
+        if self.current_scale >= 0.4:
+            width = 1.5
+
         for i in range(len(self.path) - 1):
             current_position, next_position = self.path[i], self.path[i + 1]
             current_x, current_y = current_position[0] * self.imtk.width(), current_position[1] * self.imtk.height()
             next_x, next_y = next_position[0] * self.imtk.width(), next_position[1] * self.imtk.height()
-            canvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green')
+            canvas_path_point = self.canvas.create_line(current_x, current_y, next_x, next_y, fill='green', width = width)
             self.canvas_path.append(canvas_path_point)
 
 
@@ -353,6 +374,13 @@ class MainWindow:
 
     # rescale canvas
     def __rescale(self, new_scale):
+
+        assert new_scale in self.scale_level
+
+        # save scrollbar position before rescaling
+        xa, xb = self.canvas.xview()
+        ya, yb = self.canvas.yview()
+
         self.current_scale = new_scale
         self.scale_text.set('%d' % (new_scale * 100) + '%')
 
@@ -364,11 +392,21 @@ class MainWindow:
 
         self.__draw_start_point()
         self.__draw_end_point()
-        self.__draw_ask_point()
         self.__draw_path()
-        self.__get_prob()
         if self.show_geogrids:
             self.__draw_geogrid()
+
+        # fix wrong position of scrollbar after rescaling
+        xm = (xa + xb)/2
+        ym = (ya + yb)/2
+        nxlen = float(self.canvas['width']) / new_size[0]
+        nylen = float(self.canvas['height']) / new_size[1]
+        nxa = (xm - nxlen/2)
+        nya = (ym - nylen/2)
+
+        self.canvas.xview_moveto(nxa)
+        self.canvas.yview_moveto(nya)
+
 
     # callback functions below
 
@@ -482,15 +520,26 @@ class MainWindow:
             self.e8.delete(0, 'end')
             self.e8.insert(0, str(alpha))
 
+    '''
     def __show_prob(self, x_cor, y_cor, x_position):
+
+        assert self.rec == None
+
         prob_cotent = 'sea: ' + "{:.3f}".format(self.model.get_sea_probability(x_cor, y_cor)) + '\n' + \
             'thin ice/cloud: ' + "{:.3f}".format(self.model.get_thin_ice_probability(x_cor, y_cor)) + '\n' + \
             'thick ice/cloud: ' + "{:.3f}".format(self.model.get_thick_ice_probability(x_cor, y_cor))
 
-        self.__delete_canvas_item(self.rec)
-        self.__delete_canvas_item(self.text)
         x = self.ask_position[0]*self.imtk.width()
         y = self.ask_position[1]*self.imtk.height()
+
+        x_offset, y_offset = 200, 60
+
+        if event.x >= int(self.canvas['width']) - x_offset:
+            x_offset = -x_offset
+        if event.y >= int(self.canvas['height']) - y_offset:
+            y_offset = -y_offset
+
+
         self.rec = self.canvas.create_rectangle(x, y, x+200, y+60, outline="white", fill="white")
         self.text = self.canvas.create_text(x, y+30, anchor=W, font="Purisa", text=prob_cotent)
 
@@ -506,6 +555,7 @@ class MainWindow:
         y_cor = self.ask_position[0] * self.model.h
 
         self.__show_prob(x_cor, y_cor, self.ask_position[0])
+    '''
 
     # canvas click event
     def __canvas_click(self, event):
@@ -538,6 +588,14 @@ class MainWindow:
             self.e4.insert(0, str('%0.2f'%latitude))
             
     def __right_canvas_click(self, event):
+
+        if self.rec != None:
+            self.__delete_canvas_item(self.rec)
+            self.__delete_canvas_item(self.text)
+            self.__delete_canvas_item(self.canvas_ask_point)
+            self.rec = self.text = None
+            return 
+
         x, y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
 
         x_position = float(x) / self.imtk.width()
@@ -560,7 +618,29 @@ class MainWindow:
         x_cor = y_position * self.model.w
         y_cor = x_position * self.model.h
 
-        self.__show_prob(x_cor, y_cor, x_position)
+        #self.__show_prob(x_cor, y_cor, x_position)
+
+        assert self.rec == None
+
+        prob_cotent = 'lon: %.2f, lat: %.2f'%(longitude, latitude) + '\n\n' + \
+            'sea: ' + "{:.3f}".format(self.model.get_sea_probability(x_cor, y_cor)) + '\n' + \
+            'thin ice/cloud: ' + "{:.3f}".format(self.model.get_thin_ice_probability(x_cor, y_cor)) + '\n' + \
+            'thick ice/cloud: ' + "{:.3f}".format(self.model.get_thick_ice_probability(x_cor, y_cor))
+
+        x_offset, y_offset = 210, 90
+        if event.x >= int(self.canvas['width']) - x_offset:
+            x_offset = -x_offset
+        if event.y >= int(self.canvas['height']) - y_offset:
+            y_offset = -y_offset
+
+
+        self.rec = self.canvas.create_rectangle(x, y, x+x_offset, y+y_offset, outline="white", fill="white")
+        self.text = self.canvas.create_text( min(x, x+x_offset), min(y, y+y_offset)+45, anchor=W, font="Purisa", text=prob_cotent)
+
+        print('sea: ', self.model.get_sea_probability(x_cor, y_cor))
+        print('thin ice: ', self.model.get_thin_ice_probability(x_cor, y_cor))
+        print('thick ice: ', self.model.get_thick_ice_probability(x_cor, y_cor))
+
 
     # callback of bgen
     def __genpath(self, target):
@@ -598,7 +678,8 @@ class MainWindow:
         #end_position = (float(self.e3.get()), float(self.e4.get()))
         start_position = self.start_position
         end_position = self.end_position
-        margin = float(self.e5.get())
+        #margin = float(self.e5.get())
+        margin = 1
 
         self.model.set_startend_position(start_position, end_position)
         self.model.set_target(target)
@@ -642,9 +723,10 @@ class MainWindow:
     def __reset(self):
 
         # clear input entries
-        for e in [self.e1, self.e2, self.e3, self.e4, self.e5, self.e6, self.e7]:
+        #for e in [self.e1, self.e2, self.e3, self.e4, self.e5, self.e6, self.e7]:
+        for e in [self.e1, self.e2, self.e3, self.e4, self.e6, self.e7]:
             e.delete(0, 'end')
-        self.e5.insert(0, "1")
+        #self.e5.insert(0, "1")
 
         self.start_position = []
         self.end_position = []
@@ -678,14 +760,16 @@ class MainWindow:
             self.b5.config(state='normal')
 
     def __open_filefolder(self):
+        
         from tkFileDialog import askopenfilename
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
         filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
-        self.inputfile = filename
         print(filename)
-        img = Image.open(self.inputfile)
-        self.imtk = ImageTk.PhotoImage(img)
-        self.canvas.create_image(0, 0, image=self.imtk, anchor='nw')
+        
+        #self.inputfile = filename
+        #img = Image.open(self.inputfile)
+        #self.imtk = ImageTk.PhotoImage(img)
+        #self.canvas.create_image(0, 0, image=self.imtk, anchor='nw')
 
     def __showhide_geogrids(self):
         if self.show_geogrids:
