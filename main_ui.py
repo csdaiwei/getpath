@@ -52,7 +52,7 @@ class MainWindow:
         self.canvas_path = []
         self.canvas_geogrids = []
         self.show_geogrids = False
-        self.click_canvas_to_set_start_point = True
+        #self.click_canvas_to_set_start_point = True
 
         self.scale_level = [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
         self.current_scale = 1.0
@@ -65,16 +65,16 @@ class MainWindow:
         # frame_left_top = tk.Frame(master, width=800, height=800)
         # frame_left_bottom = tk.Frame(master, width=800, height=60)
         # frame_right = tk.Frame(master, width=200, height=850)
-        frame_left_top = tk.Frame(master, width=850, height=850)
-        frame_left_bottom = tk.Frame(master, width=850, height=60)
-        frame_right = tk.Frame(master, width=200, height=900)
+        frame_left_top = tk.Frame(master, width=650, height=650)
+        frame_left_bottom = tk.Frame(master, width=650, height=60)
+        frame_right = tk.Frame(master, width=200, height=700)
         frame_left_top.grid(row=0, column=0, padx=2, pady=2)
         frame_left_bottom.grid(row=1, column=0, padx=2, pady=2)
         frame_right.grid(row=0, column=1, rowspan=2, padx=2, pady=2)
 
         # build frame left top
         # self.canvas = tk.Canvas(frame_left_top, width=800, height=800)
-        self.canvas = tk.Canvas(frame_left_top, width=850, height=850)
+        self.canvas = tk.Canvas(frame_left_top, width=650, height=650)
         self.canvas.create_image(0, 0, image=self.imtk, anchor='nw')
 
         self.rec = None
@@ -95,27 +95,32 @@ class MainWindow:
         self.canvas.pack()
 
         # build frame left bottom
-        b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", value=1, command=self.__set_start_point_click)
-        b1.select()
-        b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", value=2, command=self.__set_end_point_click)
-        b3 = tk.Button(frame_left_bottom, text='更换modis图像', command=self.__open_filefolder)
-        b4 = tk.Button(frame_left_bottom, text='显示/隐藏经纬网', command=self.__showhide_geogrids)
+        self.mouse_status = tk.IntVar()  
+        b0 = tk.Radiobutton(frame_left_bottom, text="默认", variable=self.mouse_status, value=0)
+        b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", variable=self.mouse_status, value=1)
+        b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", variable=self.mouse_status, value=2)
+        #b1 = tk.Radiobutton(frame_left_bottom, text="设置起点", value=1, command=self.__set_start_point_click)
+        #b1.select()
+        #b2 = tk.Radiobutton(frame_left_bottom, text="设置终点", value=2, command=self.__set_end_point_click)
+        b3 = tk.Button(frame_left_bottom, text='更换modis', command=self.__open_filefolder)
+        b4 = tk.Button(frame_left_bottom, text='显示经纬网', command=self.__showhide_geogrids)
         self.b5 = tk.Button(frame_left_bottom, text='-', width=2, command=self.__zoomout)
         self.b6 = tk.Button(frame_left_bottom, text='+', width=2, command=self.__zoomin)
-        b1.grid(row=0, column=0)
-        b2.grid(row=0, column=1)
-        b3.grid(row=0, column=2)
-        b4.grid(row=0, column=3)
-        self.b5.grid(row=0, column=5)
-        self.b6.grid(row=0, column=7)
+        b0.grid(row=0, column=0)
+        b1.grid(row=0, column=1)
+        b2.grid(row=0, column=2)
+        b3.grid(row=0, column=3)
+        b4.grid(row=0, column=4)
+        self.b5.grid(row=0, column=6)
+        self.b6.grid(row=0, column=8)
 
         blank = tk.Label(frame_left_bottom)
-        blank.grid(row=0, column=4, padx=40)
+        blank.grid(row=0, column=5, padx=20)
 
         self.scale_text = tk.StringVar()
         self.scale_text.set('100%')
         scale_label = tk.Label(frame_left_bottom, textvariable=self.scale_text, width=6)
-        scale_label.grid(row=0, column=6)
+        scale_label.grid(row=0, column=7)
 
         # build frame right
         l1 = tk.Label(frame_right, text='起点经度')
@@ -217,6 +222,7 @@ class MainWindow:
         self.e9.bind('<Tab>', self.__ratio_change_beta)
         self.e9.bind('<Leave>', self.__ratio_change_beta)
         self.e9.bind('<Return>', self.__ratio_change_beta)
+        self.canvas.bind("<B1-Motion>", self.__event_canvas_move)
 
         self.__rescale(0.2)
 
@@ -409,12 +415,13 @@ class MainWindow:
 
 
     # callback functions below
-
+    '''
     def __set_start_point_click(self):
         self.click_canvas_to_set_start_point = True
 
     def __set_end_point_click(self):
         self.click_canvas_to_set_start_point = False
+    '''
 
     def __start_point_change(self, event):
         try:
@@ -569,6 +576,35 @@ class MainWindow:
 
         longitude, latitude = self.__position_to_geocoordinates(x_position, y_position)
 
+        status = self.mouse_status.get()
+
+        if status == 0:     # normal
+            self.canvas.scan_mark(event.x, event.y)
+        
+        elif status == 1:   # click to set starting point
+            
+            self.start_position = (x_position, y_position)
+            self.__draw_start_point()
+
+            self.e1.delete(0, 'end')
+            self.e1.insert(0, str('%0.2f'%longitude))
+            self.e2.delete(0, 'end')
+            self.e2.insert(0, str('%0.2f'%latitude))
+
+
+        elif status == 2:   # click to set ending point
+            self.end_position = (x_position, y_position)
+            self.__draw_end_point()
+
+            self.e3.delete(0, 'end')
+            self.e3.insert(0, str('%0.2f'%longitude))
+            self.e4.delete(0, 'end')
+            self.e4.insert(0, str('%0.2f'%latitude))
+
+        else:
+            raise Exception('mouse status error')
+
+        '''
         if self.click_canvas_to_set_start_point:
 
             self.start_position = (x_position, y_position)
@@ -586,6 +622,7 @@ class MainWindow:
             self.e3.insert(0, str('%0.2f'%longitude))
             self.e4.delete(0, 'end')
             self.e4.insert(0, str('%0.2f'%latitude))
+        '''
             
     def __right_canvas_click(self, event):
 
@@ -635,12 +672,19 @@ class MainWindow:
 
 
         self.rec = self.canvas.create_rectangle(x, y, x+x_offset, y+y_offset, outline="white", fill="white")
-        self.text = self.canvas.create_text( min(x, x+x_offset), min(y, y+y_offset)+45, anchor=W, font="Purisa", text=prob_cotent)
+        self.text = self.canvas.create_text( min(x, x+x_offset), min(y, y+y_offset)+45, anchor=W, font=("Purisa", 11), text=prob_cotent)
 
         print('sea: ', self.model.get_sea_probability(x_cor, y_cor))
         print('thin ice: ', self.model.get_thin_ice_probability(x_cor, y_cor))
         print('thick ice: ', self.model.get_thick_ice_probability(x_cor, y_cor))
 
+
+    def __event_canvas_move(self, event):
+
+        canvas = event.widget
+
+        if self.mouse_status.get() == 0:     # normal
+            canvas.scan_dragto(event.x, event.y, gain=1)
 
     # callback of bgen
     def __genpath(self, target):
@@ -730,6 +774,7 @@ class MainWindow:
 
         self.start_position = []
         self.end_position = []
+        self.mouse_status.set(0)
 
         # clear canvas
         self.canvas.delete("all")
@@ -763,8 +808,8 @@ class MainWindow:
         
         from tkFileDialog import askopenfilename
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
-        filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
-        print(filename)
+        #filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
+        #print(filename)
         
         #self.inputfile = filename
         #img = Image.open(self.inputfile)
